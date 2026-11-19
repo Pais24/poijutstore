@@ -65,7 +65,7 @@ export default async (request) => {
       const message = cleanString(body.message, 1200);
       if (!message) return json({ error: "Tulis pertanyaan terlebih dahulu." }, 400);
       if (!process.env.OPENAI_API_KEY) {
-        return json({ error: "AI Assistant belum dikonfigurasi. Admin perlu menambahkan OPENAI_API_KEY pada environment variables Netlify." }, 503);
+        return json({ error: "PAPOI belum dikonfigurasi. Pastikan OPENAI_API_KEY tersedia pada Environment Variables Netlify untuk Functions, lalu deploy ulang." }, 503);
       }
       const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -74,13 +74,13 @@ export default async (request) => {
           "content-type": "application/json"
         },
         body: JSON.stringify({
-          model: "gpt-4.1-mini",
+          model: (process.env.OPENAI_MODEL || "gpt-4.1-mini").trim(),
           temperature: 0.3,
           max_tokens: 500,
           messages: [
             {
               role: "system",
-              content: "Anda adalah Poizystore AI Assistant, asisten layanan servis HP di Yogyakarta. Jawab dalam Bahasa Indonesia secara ringkas, ramah, dan jelas. Bantu menjelaskan layanan servis iPhone dan Android, perawatan perangkat, serta informasi umum Poizystore. Jangan mengarang harga, stok, garansi, alamat, atau jadwal yang tidak diberikan. Untuk kerusakan perangkat, jelaskan bahwa jawaban hanya indikasi awal dan diagnosis pasti perlu pemeriksaan teknisi. Jangan meminta kata sandi, OTP, atau data pembayaran."
+              content: "Identitas Anda adalah PAPOI, asisten AI resmi PoijutStore untuk layanan servis HP di Yogyakarta. Jika ditanya nama, jawab PAPOI. Selalu gunakan Bahasa Indonesia yang jelas, ringkas, ramah, dan profesional. Bantu pengguna memahami layanan servis iPhone dan Android, gejala kerusakan, perawatan perangkat, serta informasi PoijutStore. Jangan mengarang harga, stok, garansi, alamat, atau jadwal yang tidak tersedia dalam konteks. Untuk kerusakan perangkat, berikan kemungkinan penyebab sebagai indikasi awal dan jelaskan bahwa diagnosis pasti memerlukan pemeriksaan teknisi. Jangan meminta kata sandi, OTP, atau data pembayaran."
             },
             { role: "user", content: message }
           ]
