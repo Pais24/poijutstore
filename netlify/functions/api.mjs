@@ -121,7 +121,14 @@ export default async (request) => {
       if (!key) return json({ error: "Nomor resi tidak valid." }, 400);
       const record = await (await store()).get(key, { type: "json" });
       if (!record) return json({ error: "Data garansi tidak ditemukan." }, 404);
-      return json({ record });
+      return json({ record: {
+        invNo: record.invNo,
+        name: record.name,
+        device: record.device,
+        subtotal: record.subtotal,
+        dateISO: record.dateISO,
+        garansiBulan: record.garansiBulan
+      } });
     }
 
     return json({ error: "Endpoint tidak ditemukan." }, 404);
