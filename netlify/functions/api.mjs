@@ -97,8 +97,17 @@ export default async (request) => {
       });
       const result = await upstream.json().catch(() => ({}));
       if (!upstream.ok) {
-        console.error("OpenAI API error:", upstream.status, result?.error?.message || "Unknown error");
-        return json({ error: "Layanan AI sedang bermasalah. Silakan coba beberapa saat lagi." }, 502);
+        const providerMessage = cleanString(result?.error?.message, 500);
+        const providerCode = cleanString(result?.error?.code || result?.error?.type, 100);
+        console.error("OpenAI API error:", upstream.status, providerCode, providerMessage || "Unknown error");
+        let userMessage = "Layanan AI sedang bermasalah. Silakan coba beberapa saat lagi.";
+        if (upstream.status === 401) userMessage = "Koneksi AI ditolak: API Key tidak valid atau sudah dicabut. Periksa OPENAI_API_KEY di Netlify.";
+        else if (upstream.status === 403) userMessage = "Akses model AI ditolak. Periksa izin proyek dan akses model pada akun penyedia AI.";
+        else if (upstream.status === 404) userMessage = "Model AI tidak ditemukan atau tidak tersedia untuk proyek ini. Periksa OPENAI_MODEL di Netlify.";
+        else if (upstream.status === 429 && /quota|billing|credit|insufficient/i.test(providerMessage + " " + providerCode)) userMessage = "Kuota atau saldo API AI tidak mencukupi. Periksa batas penggunaan dan penagihan akun penyedia AI.";
+        else if (upstream.status === 429) userMessage = "Permintaan AI sedang mencapai batas penggunaan. Tunggu sebentar lalu coba lagi.";
+        else if (upstream.status >= 500) userMessage = "Layanan penyedia AI sedang mengalami gangguan. Coba lagi beberapa saat.";
+        return json({ error: userMessage, providerStatus: upstream.status, providerCode: providerCode || null }, 502);
       }
       const reply = result?.choices?.[0]?.message?.content;
       if (typeof reply !== "string" || !reply.trim()) return json({ error: "AI belum menghasilkan jawaban. Coba ulangi." }, 502);
