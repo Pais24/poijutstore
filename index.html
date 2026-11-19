@@ -239,17 +239,17 @@
 
     <!-- AI ASSISTANT -->
     <div id="aiAssistantRoot" class="fixed bottom-6 left-6 z-[60]">
-        <button id="aiAssistantToggle" type="button" aria-label="Buka AI Assistant" aria-expanded="false"
+        <button id="aiAssistantToggle" type="button" aria-label="Buka PAPOI" aria-expanded="false"
             class="rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold px-4 py-3 shadow-2xl shadow-cyan-500/30 transition flex items-center gap-2">
-            <i class="fa-solid fa-robot"></i><span>AI Assistant</span>
+            <i class="fa-solid fa-robot"></i><span>PAPOI</span>
         </button>
         <section id="aiAssistantPanel" class="hidden absolute bottom-16 left-0 w-[min(92vw,380px)] bg-slate-900 border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden">
             <div class="flex items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800">
-                <div><h2 class="font-bold text-white text-sm">Poizystore AI Assistant</h2><p class="text-[11px] text-slate-400">Asisten informasi servis HP</p></div>
+                <div><h2 class="font-bold text-white text-sm">PAPOI</h2><p class="text-[11px] text-slate-400">Asisten informasi servis HP</p></div>
                 <button id="aiAssistantClose" type="button" class="text-slate-400 hover:text-white p-2" aria-label="Tutup AI Assistant"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div id="aiAssistantMessages" class="h-72 overflow-y-auto p-4 space-y-3 text-sm" aria-live="polite">
-                <div class="max-w-[90%] rounded-xl rounded-tl-sm bg-slate-800 p-3 text-slate-200">Halo! Saya asisten Poizystore. Saya bisa membantu menjelaskan layanan, estimasi awal, dan informasi perawatan HP. Untuk diagnosis pasti, perangkat tetap perlu diperiksa teknisi.</div>
+                <div class="max-w-[90%] rounded-xl rounded-tl-sm bg-slate-800 p-3 text-slate-200">Halo! Saya PAPOI, asisten pintar PoijutStore. Saya siap membantu pertanyaan seputar layanan dan perawatan HP. Untuk diagnosis pasti, perangkat tetap perlu diperiksa teknisi.</div>
             </div>
             <form id="aiAssistantForm" class="p-3 border-t border-slate-800 flex gap-2">
                 <input id="aiAssistantInput" type="text" maxlength="1200" autocomplete="off" placeholder="Tulis pertanyaan tentang HP..."
@@ -1995,7 +1995,7 @@
         });
 
 
-        // AI Assistant: requests are proxied server-side; API keys never reach the browser.
+        // PAPOI: permintaan AI diproses di server; API key tidak dikirim ke browser.
         function initAIAssistant() {
             const toggle = document.getElementById('aiAssistantToggle');
             const panel = document.getElementById('aiAssistantPanel');
@@ -2038,7 +2038,7 @@
                     });
                     waiting.textContent = result.reply || 'Maaf, belum ada jawaban. Coba ulangi.';
                 } catch (error) {
-                    waiting.textContent = error.message || 'AI Assistant belum dapat dihubungi. Periksa konfigurasi server.';
+                    waiting.textContent = error.message || 'PAPOI belum dapat dihubungi. Silakan coba lagi beberapa saat.';
                 } finally {
                     send.disabled = false;
                     send.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
