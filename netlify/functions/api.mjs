@@ -60,6 +60,15 @@ export default async (request) => {
 
   try {
 
+    if (method === "GET" && path === "/api/health") {
+      return json({
+        ok: true,
+        assistant: "PAPOI",
+        aiConfigured: Boolean(process.env.OPENAI_API_KEY),
+        model: (process.env.OPENAI_MODEL || "gpt-4.1-mini").trim()
+      });
+    }
+
     if (method === "POST" && path === "/api/ai-chat") {
       const body = await readBody(request);
       const message = cleanString(body.message, 1200);
