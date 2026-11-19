@@ -236,6 +236,30 @@
         </div>
     </header>
 
+
+    <!-- AI ASSISTANT -->
+    <div id="aiAssistantRoot" class="fixed bottom-6 left-6 z-[60]">
+        <button id="aiAssistantToggle" type="button" aria-label="Buka AI Assistant" aria-expanded="false"
+            class="rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold px-4 py-3 shadow-2xl shadow-cyan-500/30 transition flex items-center gap-2">
+            <i class="fa-solid fa-robot"></i><span>AI Assistant</span>
+        </button>
+        <section id="aiAssistantPanel" class="hidden absolute bottom-16 left-0 w-[min(92vw,380px)] bg-slate-900 border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800">
+                <div><h2 class="font-bold text-white text-sm">Poizystore AI Assistant</h2><p class="text-[11px] text-slate-400">Asisten informasi servis HP</p></div>
+                <button id="aiAssistantClose" type="button" class="text-slate-400 hover:text-white p-2" aria-label="Tutup AI Assistant"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="aiAssistantMessages" class="h-72 overflow-y-auto p-4 space-y-3 text-sm" aria-live="polite">
+                <div class="max-w-[90%] rounded-xl rounded-tl-sm bg-slate-800 p-3 text-slate-200">Halo! Saya asisten Poizystore. Saya bisa membantu menjelaskan layanan, estimasi awal, dan informasi perawatan HP. Untuk diagnosis pasti, perangkat tetap perlu diperiksa teknisi.</div>
+            </div>
+            <form id="aiAssistantForm" class="p-3 border-t border-slate-800 flex gap-2">
+                <input id="aiAssistantInput" type="text" maxlength="1200" autocomplete="off" placeholder="Tulis pertanyaan tentang HP..."
+                    class="min-w-0 flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                <button id="aiAssistantSend" type="submit" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl px-4 font-bold" aria-label="Kirim"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
+            <p class="px-3 pb-3 text-[10px] text-slate-500">Jangan kirim kata sandi, kode OTP, atau data pribadi.</p>
+        </section>
+    </div>
+
     <!-- Floating WhatsApp Button -->
     <a href="https://wa.me/6282238675779?text=Halo%20Poizystore,%20saya%20ingin%20konsultasi%20service%20hp." target="_blank" class="fixed bottom-6 right-6 z-45 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center text-2xl shadow-2xl shadow-emerald-500/50 transition transform hover:scale-110 animate-bounce" title="Chat WhatsApp Teknisi">
         <i class="fa-brands fa-whatsapp"></i>
@@ -1075,7 +1099,14 @@
     <!-- SECTION 3: TAB ADMIN & INVOICE GENERATOR GABUNGAN -->
     <div id="sectionAdmin" class="main-section hidden py-24 bg-slate-950 min-h-screen">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
-            
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="switchSection('home')" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 px-4 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-house mr-1"></i> Beranda</button>
+                    <button type="button" onclick="switchSection('garansi')" class="bg-slate-800 hover:bg-slate-700 text-emerald-300 px-4 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-shield-halved mr-1"></i> Cek Garansi</button>
+                </div>
+                <span class="text-xs text-slate-500">Navigasi Poizystore</span>
+            </div>
+
             <!-- Login Admin Card -->
             <div id="adminLoginCard" class="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl neon-border reveal">
                 <div class="text-center mb-6">
@@ -1358,15 +1389,23 @@
 
         // Tab Section Switcher
         function switchSection(secName) {
-            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
-            if (secName === 'home') {
-                document.getElementById('sectionHome').classList.remove('hidden');
-            } else if (secName === 'garansi') {
-                document.getElementById('sectionGaransi').classList.remove('hidden');
-            } else if (secName === 'admin') {
-                document.getElementById('sectionAdmin').classList.remove('hidden');
-                cekStatusLoginAdmin();
+            const sections = {
+                home: document.getElementById('sectionHome'),
+                garansi: document.getElementById('sectionGaransi'),
+                admin: document.getElementById('sectionAdmin')
+            };
+            if (!Object.prototype.hasOwnProperty.call(sections, secName) || !sections[secName]) {
+                secName = 'home';
             }
+            document.querySelectorAll('.main-section').forEach(el => {
+                el.classList.add('hidden');
+                el.setAttribute('aria-hidden', 'true');
+            });
+            sections[secName].classList.remove('hidden');
+            sections[secName].setAttribute('aria-hidden', 'false');
+            if (secName === 'admin') cekStatusLoginAdmin();
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (mobileMenu) mobileMenu.classList.add('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -1955,6 +1994,60 @@
             window.open(whatsappURL, '_blank');
         });
 
+
+        // AI Assistant: requests are proxied server-side; API keys never reach the browser.
+        function initAIAssistant() {
+            const toggle = document.getElementById('aiAssistantToggle');
+            const panel = document.getElementById('aiAssistantPanel');
+            const close = document.getElementById('aiAssistantClose');
+            const form = document.getElementById('aiAssistantForm');
+            const input = document.getElementById('aiAssistantInput');
+            const messages = document.getElementById('aiAssistantMessages');
+            const send = document.getElementById('aiAssistantSend');
+            if (!toggle || !panel || !form) return;
+            const setOpen = open => {
+                panel.classList.toggle('hidden', !open);
+                toggle.setAttribute('aria-expanded', String(open));
+                if (open) input.focus();
+            };
+            toggle.addEventListener('click', () => setOpen(panel.classList.contains('hidden')));
+            close.addEventListener('click', () => setOpen(false));
+            const addMessage = (text, role) => {
+                const bubble = document.createElement('div');
+                bubble.className = role === 'user'
+                    ? 'ml-auto max-w-[90%] rounded-xl rounded-tr-sm bg-cyan-500/15 border border-cyan-500/20 p-3 text-cyan-100 whitespace-pre-wrap'
+                    : 'mr-auto max-w-[90%] rounded-xl rounded-tl-sm bg-slate-800 p-3 text-slate-200 whitespace-pre-wrap';
+                bubble.textContent = text;
+                messages.appendChild(bubble);
+                messages.scrollTop = messages.scrollHeight;
+                return bubble;
+            };
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                const question = input.value.trim();
+                if (!question || send.disabled) return;
+                addMessage(question, 'user');
+                input.value = '';
+                send.disabled = true;
+                send.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                const waiting = addMessage('Sedang menyiapkan jawaban...', 'assistant');
+                try {
+                    const result = await apiRequest('/api/ai-chat', {
+                        method: 'POST',
+                        body: JSON.stringify({ message: question })
+                    });
+                    waiting.textContent = result.reply || 'Maaf, belum ada jawaban. Coba ulangi.';
+                } catch (error) {
+                    waiting.textContent = error.message || 'AI Assistant belum dapat dihubungi. Periksa konfigurasi server.';
+                } finally {
+                    send.disabled = false;
+                    send.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+                    messages.scrollTop = messages.scrollHeight;
+                    input.focus();
+                }
+            });
+        }
+
         // 9. DATABASE, ADMIN & INVOICE GENERATOR LOGIC
         // Data garansi dan invoice disimpan di backend server, bukan localStorage.
         let currentInvoiceData = null;
@@ -2306,6 +2399,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             cekStatusLoginAdmin();
+            initAIAssistant();
         });
     </script>
 </body>
