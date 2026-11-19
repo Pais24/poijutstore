@@ -59,6 +59,43 @@ export default async (request) => {
   const method = request.method.toUpperCase();
 
   try {
+
+    if (method === "POST" && path === "/api/ai-chat") {
+      const body = await readBody(request);
+      const message = cleanString(body.message, 1200);
+      if (!message) return json({ error: "Tulis pertanyaan terlebih dahulu." }, 400);
+      if (!process.env.OPENAI_API_KEY) {
+        return json({ error: "AI Assistant belum dikonfigurasi. Admin perlu menambahkan OPENAI_API_KEY pada environment variables Netlify." }, 503);
+      }
+      const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4.1-mini",
+          temperature: 0.3,
+          max_tokens: 500,
+          messages: [
+            {
+              role: "system",
+              content: "Anda adalah Poizystore AI Assistant, asisten layanan servis HP di Yogyakarta. Jawab dalam Bahasa Indonesia secara ringkas, ramah, dan jelas. Bantu menjelaskan layanan servis iPhone dan Android, perawatan perangkat, serta informasi umum Poizystore. Jangan mengarang harga, stok, garansi, alamat, atau jadwal yang tidak diberikan. Untuk kerusakan perangkat, jelaskan bahwa jawaban hanya indikasi awal dan diagnosis pasti perlu pemeriksaan teknisi. Jangan meminta kata sandi, OTP, atau data pembayaran."
+            },
+            { role: "user", content: message }
+          ]
+        })
+      });
+      const result = await upstream.json().catch(() => ({}));
+      if (!upstream.ok) {
+        console.error("OpenAI API error:", upstream.status, result?.error?.message || "Unknown error");
+        return json({ error: "Layanan AI sedang bermasalah. Silakan coba beberapa saat lagi." }, 502);
+      }
+      const reply = result?.choices?.[0]?.message?.content;
+      if (typeof reply !== "string" || !reply.trim()) return json({ error: "AI belum menghasilkan jawaban. Coba ulangi." }, 502);
+      return json({ reply: reply.trim() });
+    }
+
     if (method === "POST" && path === "/api/admin/login") {
       const body = await readBody(request);
       const username = process.env.ADMIN_USERNAME;
