@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poizystore - Service HP Panggilan Jogja & iPhone Panic Log Diagnostic</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate950: '#020617',
+                        cyanGlow: '#06b6d4',
+                        emeraldGlow: '#10b981',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overflow-x: hidden;
+        }
+
+        #cursorGlow {
+            pointer-events: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(6,182,212,0.12) 0%, rgba(16,185,129,0.05) 50%, rgba(0,0,0,0) 70%);
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            transition: transform 0.15s ease-out, opacity 0.3s ease;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #promoPopupOverlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #promoPopupOverlay.show-popup {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #promoPopupBox {
+            transform: scale(0.95) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #promoPopupOverlay.show-popup #promoPopupBox {
+            transform: scale(1) translateY(0);
+        }
+
+        .ripple-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple-anim 0.6s linear;
+            background-color: rgba(255, 255, 255, 0.35);
+            pointer-events: none;
+        }
+        @keyframes ripple-anim {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .interactive-card {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .interactive-card:hover {
+            transform: translateY(-6px) scale(1.015);
+            box-shadow: 0 15px 30px -10px rgba(6, 182, 212, 0.25);
+        }
+        .interactive-card:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+
+        .neon-border {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+            transition: box-shadow 0.3s ease;
+        }
+        .neon-border:hover {
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.35);
+        }
+
+        #wheelCanvas {
+            transition: transform 4s cubic-bezier(0.15, 0.99, 0.24, 0.99);
+        }
+
+        .slide-item {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .slide-item.active-slide {
+            display: block;
+            opacity: 1;
+        }
+
+        @media print {
+            body { background: #fff !important; color: #000 !important; padding: 0 !important; }
+            header, footer, .tabs, button, .no-print { display: none !important; }
+            .panel { border: none !important; box-shadow: none !important; padding: 0 !important; display: block !important; background: #fff !important; color: #000 !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+    <div id="cursorGlow"></div>
+
+    <!-- PROMO POPUP MODAL -->
+    <div id="promoPopupOverlay" class="fixed inset-0 z-[10000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div id="promoPopupBox" class="relative max-w-lg w-full bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-cyan-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl neon-border text-center overflow-hidden">
+            <button id="closePopupBtn" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition shadow">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-4">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>Special Offer • Khusus Mahasiswa & Umum Jogja</span>
+            </div>
+
+            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center text-slate-950 text-3xl shadow-lg shadow-cyan-500/30">
+                <i class="fa-solid fa-gift"></i>
+            </div>
+
+            <h3 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">Diskon Gacha s/d Rp 100.000!</h3>
+            <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                Mau ganti LCD atau baterai HP tapi ingin harga lebih hemat? Putar roda keberuntungan diskon mahasiswa di web kami atau panggil teknisi langsung datang ke tempat Anda sekarang!
+            </p>
+
+            <div class="space-y-3">
+                <a href="#booking" id="popupActionBtn" class="ripple-btn active:scale-95 w-full block bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-extrabold py-3.5 px-6 rounded-xl text-sm transition shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-dharmachakra mr-2"></i> Klaim Diskon & Booking Sekarang
+                </a>
+                <button type="button" id="dismissPopupBtn" class="w-full text-center text-xs text-slate-400 hover:text-white py-2 transition">
+                    Lanjutkan ke Website Utama
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Announcement Slide Carousel -->
+    <div class="bg-gradient-to-r from-cyan-950 via-slate-900 to-emerald-950 text-xs sm:text-sm py-2.5 px-4 text-center font-medium border-b border-cyan-500/30 overflow-hidden relative shadow-lg">
+        <div id="topBannerSlider">
+            <div class="slide-item active-slide">
+                <span class="inline-block animate-bounce mr-1">⚡</span> <strong>SERVICE PANGGILAN JOGJA:</strong> Teknisi Langsung Datang ke Rumah, Kost, & Kantor (Area Yogyakarta & Sleman)!
+            </div>
+            <div class="slide-item">
+                <span class="inline-block animate-pulse mr-1">🎰</span> <strong>PROMO MAHASISWA JOGJA:</strong> Putar Roda Gacha KTM & Dapatkan Diskon Service Rp 10rb - 100rb!
+            </div>
+            <div class="slide-item">
+                <span class="inline-block animate-bounce mr-1">🔍</span> <strong>FITUR GRATIS:</strong> Cek Kerusakan iPhone Restarts Sendiri via Menu Panic Full Log di Web Ini!
+            </div>
+            <div class="slide-item">
+                <span class="inline-block text-emerald-400 mr-1">🛡️</span> <strong>GARANSI TERTULIS:</strong> Semua Penggantian LCD & Baterai Dilengkapi Garansi Resmi!
+            </div>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3 group cursor-pointer" onclick="switchSection('home')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-cyan-500/30 group-hover:rotate-12 transition transform">
+                    <i class="fa-solid fa-screwdriver-wrench text-slate-950 text-lg font-bold"></i>
+                </div>
+                <div>
+                    <span class="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">Poizystore</span>
+                    <span class="block text-[10px] tracking-widest text-slate-400 uppercase font-semibold">Service HP Panggilan Jogja</span>
+                </div>
+            </div>
+            
+            <nav class="hidden md:flex items-center space-x-4 text-sm font-medium text-slate-300">
+                <a href="#layanan" class="hover:text-cyan-400 transition hover:-translate-y-0.5 inline-block">Layanan</a>
+                <a href="#estimasi" class="hover:text-cyan-400 transition hover:-translate-y-0.5 inline-block text-cyan-400 font-bold"><i class="fa-solid fa-calculator mr-1"></i> Estimasi</a>
+                <a href="#pricelist-lcd" class="hover:text-cyan-400 transition hover:-translate-y-0.5 inline-block">LCD</a>
+                <a href="#pricelist-baterai" class="hover:text-cyan-400 transition hover:-translate-y-0.5 inline-block">Baterai</a>
+                <a href="#keunggulan" class="hover:text-cyan-400 transition hover:-translate-y-0.5 inline-block">Keunggulan</a>
+                <a href="#booking" class="hover:text-cyan-400 transition hover:-translate-y-0.5 inline-block">Booking</a>
+                <a href="#panic-analyzer" class="hover:text-cyan-400 transition hover:-translate-y-0.5 inline-block text-emerald-400 font-bold"><i class="fa-solid fa-microchip mr-1"></i> Panic Full</a>
+                <button onclick="switchSection('garansi')" class="hover:text-emerald-400 transition font-bold text-emerald-400 cursor-pointer"><i class="fa-solid fa-shield-halved mr-1"></i> Garansi</button>
+                <button onclick="switchSection('admin')" class="hover:text-cyan-400 transition font-bold text-cyan-400 cursor-pointer"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Admin & Invoice</button>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <a href="https://wa.me/6282238675779?text=Halo%20Poizystore,%20saya%20mau%20tanya%20jadwal%20service%20panggilan%20ke%20rumah." target="_blank" class="ripple-btn hidden sm:inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition shadow-lg shadow-emerald-600/20">
+                    <i class="fa-brands fa-whatsapp text-lg"></i>
+                    <span>Chat Teknisi</span>
+                </a>
+                <button id="mobileMenuBtn" class="md:hidden text-slate-300 hover:text-white p-2">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden md:hidden bg-slate-900 border-b border-slate-800 px-4 pt-2 pb-4 space-y-3">
+            <a href="#layanan" class="block py-2 text-slate-300 hover:text-cyan-400">Layanan</a>
+            <a href="#estimasi" class="block py-2 text-cyan-400 font-bold"><i class="fa-solid fa-calculator mr-1"></i> Cek Estimasi Biaya</a>
+            <a href="#pricelist-lcd" class="block py-2 text-slate-300 hover:text-cyan-400">Pricelist LCD</a>
+            <a href="#pricelist-baterai" class="block py-2 text-slate-300 hover:text-cyan-400">Pricelist Baterai</a>
+            <a href="#keunggulan" class="block py-2 text-slate-300 hover:text-cyan-400">Keunggulan</a>
+            <a href="#booking" class="block py-2 text-slate-300 hover:text-cyan-400">Booking Panggilan</a>
+            <a href="#panic-analyzer" class="block py-2 text-emerald-400 font-bold"><i class="fa-solid fa-microchip mr-1"></i> Check Panic Full iPhone</a>
+            <button onclick="switchSection('garansi'); toggleMobMenu();" class="block w-full text-left py-2 text-emerald-400 font-bold">🛡️ Cek Garansi Servis</button>
+            <button onclick="switchSection('admin'); toggleMobMenu();" class="block w-full text-left py-2 text-cyan-400 font-bold">📁 Panel Admin & Invoice Servis</button>
+            <a href="https://wa.me/6282238675779?text=Halo%20Poizystore,%20saya%20mau%20tanya%20jadwal%20service%20panggilan%20ke%20rumah." target="_blank" class="w-full text-center block bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-semibold ripple-btn">
+                <i class="fa-brands fa-whatsapp mr-2"></i> Chat WhatsApp Sekarang
+            </a>
+        </div>
+    </header>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/6282238675779?text=Halo%20Poizystore,%20saya%20ingin%20konsultasi%20service%20hp." target="_blank" class="fixed bottom-6 right-6 z-45 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center text-2xl shadow-2xl shadow-emerald-500/50 transition transform hover:scale-110 animate-bounce" title="Chat WhatsApp Teknisi">
+        <i class="fa-brands fa-whatsapp"></i>
+    </a>
+
+    <!-- SECTION 1: WEBSITE UTAMA (HOME) -->
+    <div id="sectionHome" class="main-section">
+        <!-- Hero Section -->
+        <section class="relative overflow-hidden py-20 lg:py-32 bg-slate-950">
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-950/40 via-slate-950 to-slate-950 pointer-events-none"></div>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                    <div class="lg:col-span-7 space-y-6 text-center lg:text-left reveal">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs sm:text-sm font-semibold">
+                            <i class="fa-solid fa-dharmachakra animate-spin" style="animation-duration: 10s;"></i>
+                            <span>Gacha Diskon Mahasiswa Jogja • Putar Roda Potongan s/d 100rb</span>
+                        </div>
+                        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+                            Service HP Panggilan Termurah & <span class="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">Bergaransi di Yogyakarta</span>
+                        </h1>
+                        <p class="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto lg:mx-0">
+                            HP rusak tapi malas antri atau keluar rumah? Teknisi profesional <strong class="text-slate-200">Poizystore</strong> siap datang langsung ke tempat Anda (Rumah, Kost, Kantor, Kafe) untuk iPhone & Android.
+                        </p>
+                        <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
+                            <a href="#booking" class="ripple-btn active:scale-95 w-full sm:w-auto inline-flex items-center justify-center space-x-3 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold px-8 py-4 rounded-xl shadow-lg shadow-cyan-500/25 transition transform hover:-translate-y-1">
+                                <i class="fa-solid fa-calendar-check text-lg"></i>
+                                <span>Booking Teknisi Sekarang</span>
+                            </a>
+                            <a href="#estimasi" class="ripple-btn active:scale-95 w-full sm:w-auto inline-flex items-center justify-center space-x-3 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold px-8 py-4 rounded-xl transition transform hover:-translate-y-1">
+                                <i class="fa-solid fa-calculator text-cyan-400 text-lg"></i>
+                                <span>Cek Estimasi Biaya</span>
+                            </a>
+                        </div>
+                        <div class="pt-6 grid grid-cols-3 gap-4 border-t border-slate-800/80 max-w-lg mx-auto lg:mx-0 text-center lg:text-left">
+                            <div>
+                                <div class="text-2xl sm:text-3xl font-extrabold text-cyan-400">15 Menit</div>
+                                <div class="text-xs text-slate-400 mt-1">Estimasi Respon Cepat</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400">3 Bulan</div>
+                                <div class="text-xs text-slate-400 mt-1">Garansi LCD & Baterai</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl sm:text-3xl font-extrabold text-cyan-400">100%</div>
+                                <div class="text-xs text-slate-400 mt-1">Garansi Panggilan Aman</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hero Graphic / Card -->
+                    <div class="lg:col-span-5 reveal">
+                        <div class="interactive-card relative mx-auto max-w-md bg-gradient-to-b from-slate-900 to-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl neon-border">
+                            <div class="absolute -top-3 -right-3 bg-emerald-500 text-slate-950 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                                Buka Setiap Hari
+                            </div>
+                            <div class="flex items-center space-x-4 mb-6">
+                                <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 border border-cyan-500/20">
+                                    <i class="fa-solid fa-mobile-screen-button text-2xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Poizystore Express Service</h3>
+                                    <p class="text-xs text-slate-400">Melayani Jogja, Sleman, Bantul & Sekitarnya</p>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-slate-950/60 rounded-xl border border-slate-800/60 text-sm hover:border-cyan-500/40 transition">
+                                    <span class="text-slate-300 flex items-center"><i class="fa-solid fa-circle-check text-emerald-400 mr-2"></i> Ganti LCD / Layar Sentuh</span>
+                                    <span class="text-cyan-400 font-semibold text-xs bg-cyan-950/50 px-2 py-1 rounded">Garansi 3 Bulan</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-slate-950/60 rounded-xl border border-slate-800/60 text-sm hover:border-cyan-500/40 transition">
+                                    <span class="text-slate-300 flex items-center"><i class="fa-solid fa-circle-check text-emerald-400 mr-2"></i> Ganti Baterai Health</span>
+                                    <span class="text-cyan-400 font-semibold text-xs bg-cyan-950/50 px-2 py-1 rounded">Garansi 3 Bulan</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-slate-950/60 rounded-xl border border-slate-800/60 text-sm hover:border-cyan-500/40 transition">
+                                    <span class="text-slate-300 flex items-center"><i class="fa-solid fa-circle-check text-emerald-400 mr-2"></i> Analisa iPhone Panic Full / Restarts</span>
+                                    <span class="text-cyan-400 font-semibold text-xs bg-cyan-950/50 px-2 py-1 rounded">Analisis Awal</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-slate-950/60 rounded-xl border border-slate-800/60 text-sm hover:border-cyan-500/40 transition">
+                                    <span class="text-slate-300 flex items-center"><i class="fa-solid fa-circle-check text-emerald-400 mr-2"></i> Backglass & Housing Rusak</span>
+                                    <span class="text-cyan-400 font-semibold text-xs bg-cyan-950/50 px-2 py-1 rounded">Presisi</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                                <span><i class="fa-solid fa-shield-halved text-cyan-400 mr-1"></i> Teknisi Bersertifikat</span>
+                                <span><i class="fa-solid fa-tag text-emerald-400 mr-1"></i> Harga Transparan</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURE: ESTIMASI HITUNG BIAYA SERVICE OTOMATIS -->
+        <section id="estimasi" class="py-20 bg-slate-900/40 relative border-t border-slate-800/80">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12 reveal">
+                    <span class="text-cyan-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-cyan-500/10 px-3.5 py-1.5 rounded-full border border-cyan-500/20">
+                        🧮 Kalkulator Cek Biaya Otomatis
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-4 mb-3">Hitung Estimasi Biaya Service Anda</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">
+                        Pilih jenis perangkat dan layanan untuk mengetahui kisaran harga sparepart dan estimasi durasi pengerjaan teknisi di tempat.
+                    </p>
+                </div>
+
+                <div class="interactive-card bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl neon-border reveal">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Pilih Kategori Layanan</label>
+                            <select id="calcServiceType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-500 transition">
+                                <option value="lcd">Ganti LCD / Layar Sentuh</option>
+                                <option value="baterai">Ganti Baterai Original</option>
+                                <option value="charger">Flexible Charger / Port USB</option>
+                                <option value="kamera">Kamera Depan / Belakang</option>
+                                <option value="backglass">Backglass / Kaca Belakang</option>
+                                <option value="water">Pembersihan HP Masuk Air</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Pilih Seri Perangkat</label>
+                            <select id="calcDeviceSeries" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-500 transition">
+                                <option value="iphone_x">iPhone X / XR / XS / XS Max</option>
+                                <option value="iphone_11" selected>iPhone 11 / 11 Pro / 11 Pro Max</option>
+                                <option value="iphone_12">iPhone 12 Series</option>
+                                <option value="iphone_13">iPhone 13 Series</option>
+                                <option value="iphone_14">iPhone 14 Series</option>
+                                <option value="iphone_15">iPhone 15 Series</option>
+                                <option value="iphone_16">iPhone 16 Series</option>
+                                <option value="android">Android (Samsung / Xiaomi / Oppo / Vivo)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="button" id="calculateCostBtn" class="ripple-btn active:scale-95 w-full bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-extrabold py-3.5 px-6 rounded-xl text-sm transition shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-calculator"></i>
+                        <span>Tampilkan Estimasi Biaya & Durasi</span>
+                    </button>
+
+                    <!-- Calculation Result Box -->
+                    <div id="calcResultBox" class="hidden mt-6 p-6 rounded-2xl bg-slate-950 border border-cyan-500/40 transition-all text-center">
+                        <span class="text-xs uppercase tracking-widest text-cyan-400 font-bold block mb-1">Perkiraan Biaya & Waktu Pengerjaan</span>
+                        <div id="calcPriceDisplay" class="text-3xl font-extrabold text-emerald-400 my-2">Rp 300.000 - Rp 450.000</div>
+                        <p id="calcDescDisplay" class="text-sm text-slate-300 mb-4">Estimasi waktu pengerjaan di tempat Anda: <strong>30 Menit</strong> • Include Garansi 3 Bulan.</p>
+                        <a href="#booking" class="ripple-btn active:scale-95 inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition">
+                            <i class="fa-brands fa-whatsapp"></i>
+                            <span>Booking Jadwal Sesuai Estimasi Ini</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION PRICELIST LCD IPHONE SPECIAL -->
+        <section id="pricelist-lcd" class="py-20 bg-slate-950 relative border-t border-slate-800/80">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12 reveal">
+                    <span class="text-cyan-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-cyan-500/10 px-3.5 py-1.5 rounded-full border border-cyan-500/20">
+                        🔥 Termurah Di Jogja
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-4 mb-3">Pricelist Ganti LCD iPhone (Garansi 3 Bulan)</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">
+                        Harga spesial penggantian LCD bergaransi resmi. Pengerjaan bisa ditunggu langsung di tempat Anda.
+                    </p>
+                </div>
+
+                <div class="reveal overflow-x-auto bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl neon-border p-2 sm:p-4">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-wider">
+                                <th class="py-4 px-4 sm:px-6">Series iPhone</th>
+                                <th class="py-4 px-4 sm:px-6 text-center">Garansi Resmi</th>
+                                <th class="py-4 px-4 sm:px-6 text-right">Harga Pas</th>
+                                <th class="py-4 px-4 sm:px-6 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60 font-medium">
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone X</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 350.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone XR</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone XS</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone XS Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 11</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 300.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 11 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 11 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 500.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 12 Mini</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 500.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 12</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 500.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 12 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 500.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 12 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 600.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 13 Mini</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 500.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 13</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 500.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 13 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 600.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 13 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 900.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 14</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 600.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 14 Plus</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 700.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 14 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 900.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 14 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 1.100.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 15</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 700.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 15 Plus</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 700.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 15 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 1.100.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 15 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 1.400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 16</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 1.700.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 16 Plus</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 1.900.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 16 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 2.400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 16 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-cyan-950 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 3.900.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-slate-500 text-center mt-4">*Harga dapat berubah sewaktu-waktu sesuai dengan ketersediaan stok sparepart original/OEM teratas.</p>
+            </div>
+        </section>
+
+        <!-- SECTION PRICELIST BATERAI IPHONE SPECIAL -->
+        <section id="pricelist-baterai" class="py-20 bg-slate-900/40 relative border-t border-slate-800/80">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12 reveal">
+                    <span class="text-emerald-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/20">
+                        🔋 Baterai Awet & Bergaransi
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-4 mb-3">Pricelist Ganti Baterai iPhone (Garansi 3 Bulan)</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">
+                        Harga spesial penggantian baterai iPhone terpotong Rp 50.000 (iPhone 11 Pro ke bawah harga normal).
+                    </p>
+                </div>
+
+                <div class="reveal overflow-x-auto bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl neon-border p-2 sm:p-4">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-wider">
+                                <th class="py-4 px-4 sm:px-6">Series iPhone</th>
+                                <th class="py-4 px-4 sm:px-6 text-center">Garansi Resmi</th>
+                                <th class="py-4 px-4 sm:px-6 text-right">Harga Pas</th>
+                                <th class="py-4 px-4 sm:px-6 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60 font-medium">
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone X</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 169.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone XR</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 200.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone XS</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 200.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone XS Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 200.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 11</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 250.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 11 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 250.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 11 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 250.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 12 Mini</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 250.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 12</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 275.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 12 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 275.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 12 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 300.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 13 Mini</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 300.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 13</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 300.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 13 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 13 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 14</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 14 Plus</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 14 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 14 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 400.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 15</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 450.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 15 Plus</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 500.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 15 Pro</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 600.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                            <tr class="hover:bg-slate-800/60 transition duration-200 cursor-pointer"><td class="py-3.5 px-4 sm:px-6 text-white font-semibold">iPhone 15 Pro Max</td><td class="py-3.5 px-4 sm:px-6 text-center"><span class="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30">3 Bulan</span></td><td class="py-3.5 px-4 sm:px-6 text-right font-bold text-emerald-400">Rp 600.000</td><td class="py-3.5 px-4 sm:px-6 text-center"><a href="#booking" class="ripple-btn active:scale-90 text-xs bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 px-3 py-1.5 rounded-lg transition">Pilih</a></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-slate-500 text-center mt-4">*Baterai berkualitas tinggi dan sudah include kalibrasi / bebas notifikasi di seri tertentu.</p>
+            </div>
+        </section>
+
+        <!-- Services / Sparepart Catalog -->
+        <section id="layanan" class="py-20 bg-slate-900/50 border-t border-slate-800/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-16 reveal">
+                    <span class="text-cyan-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
+                        Katalog Layanan & Sparepart Lengkap
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-4 mb-4">Solusi Segala Jenis Kerusakan iPhone & Android</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">
+                        Kami menyediakan komponen berkualitas tinggi untuk berbagai merek smartphone populer dengan pengerjaan langsung di hadapan Anda.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition duration-300 group reveal">
+                        <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-5 group-hover:bg-cyan-500 group-hover:text-slate-950 transition duration-300 transform group-hover:rotate-6">
+                            <i class="fa-solid fa-display text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Penggantian LCD / Layar Sentuh</h3>
+                        <p class="text-slate-400 text-sm mb-4">Mengatasi layar bergaris, touchscreen tidak merespons, layar pecah, blank hitam, atau LCD berbayang.</p>
+                        <div class="flex items-center justify-between text-xs font-semibold text-cyan-400 pt-3 border-t border-slate-800">
+                            <span>iPhone & Android</span>
+                            <span>Garansi 3 Bulan</span>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition duration-300 group reveal">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-5 group-hover:bg-emerald-500 group-hover:text-slate-950 transition duration-300 transform group-hover:rotate-6">
+                            <i class="fa-solid fa-battery-full text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Ganti Baterai (Battery Replacement)</h3>
+                        <p class="text-slate-400 text-sm mb-4">Solusi baterai kembung, boros, drop drastis, service message di iPhone, atau HP mati tiba-tiba saat baterai sisa 20%.</p>
+                        <div class="flex items-center justify-between text-xs font-semibold text-emerald-400 pt-3 border-t border-slate-800">
+                            <span>Original / Double Power</span>
+                            <span>Garansi 3 Bulan</span>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition duration-300 group reveal">
+                        <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-5 group-hover:bg-cyan-500 group-hover:text-slate-950 transition duration-300 transform group-hover:rotate-6">
+                            <i class="fa-solid fa-mobile text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Backglass & Housing</h3>
+                        <p class="text-slate-400 text-sm mb-4">Penggantian kaca belakang (backglass) iPhone retak dengan mesin laser laser-cut presisi serta housing body bengkok/lecet.</p>
+                        <div class="flex items-center justify-between text-xs font-semibold text-cyan-400 pt-3 border-t border-slate-800">
+                            <span>Presisi Tinggi</span>
+                            <span>Rapi & Bersih</span>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition duration-300 group reveal">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-5 group-hover:bg-emerald-500 group-hover:text-slate-950 transition duration-300 transform group-hover:rotate-6">
+                            <i class="fa-solid fa-camera text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Kamera Depan & Belakang</h3>
+                        <p class="text-slate-400 text-sm mb-4">Mengatasi kamera berbayang, gagal fokus, ada bintik hitam, bergetar saat dibuka, atau pecah kaca lensa kameranya.</p>
+                        <div class="flex items-center justify-between text-xs font-semibold text-emerald-400 pt-3 border-t border-slate-800">
+                            <span>Jernih Original</span>
+                            <span>Pemasangan Cepat</span>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition duration-300 group reveal">
+                        <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-5 group-hover:bg-cyan-500 group-hover:text-slate-950 transition duration-300 transform group-hover:rotate-6">
+                            <i class="fa-solid fa-plug-circle-bolt text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Flexible Charger / Port USB</h3>
+                        <p class="text-slate-400 text-sm mb-4">Solusi HP tidak mau ngecas, pengisian sangat lambat, koneksi data ke komputer tidak terdeteksi, atau mic rusak.</p>
+                        <div class="flex items-center justify-between text-xs font-semibold text-cyan-400 pt-3 border-t border-slate-800">
+                            <span>Support Fast Charging</span>
+                            <span>Normal Kembali</span>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition duration-300 group reveal">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-5 group-hover:bg-emerald-500 group-hover:text-slate-950 transition duration-300 transform group-hover:rotate-6">
+                            <i class="fa-solid fa-face-smile text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Sensor Proximity / TrueDepth</h3>
+                        <p class="text-slate-400 text-sm mb-4">Perbaikan Face ID iPhone error, layar tidak mati saat ditelepon (sensor telinga), atau ambient light sensor bermasalah.</p>
+                        <div class="flex items-center justify-between text-xs font-semibold text-emerald-400 pt-3 border-t border-slate-800">
+                            <span>Akurat & Presisi</span>
+                            <span>Teknisi Ahli</span>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition duration-300 group reveal">
+                        <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-5 group-hover:bg-cyan-500 group-hover:text-slate-950 transition duration-300 transform group-hover:rotate-6">
+                            <i class="fa-solid fa-water text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Penanganan HP Masuk Air</h3>
+                        <p class="text-slate-400 text-sm mb-4">Pembersihan cairan kimia ultrasonic khusus untuk mencegah korosi pada mesin akibat terkena air hujan, kopi, atau tercebur.</p>
+                        <div class="flex items-center justify-between text-xs font-semibold text-cyan-400 pt-3 border-t border-slate-800">
+                            <span>Penyelamatan Mesin</span>
+                            <span>Tindakan Cepat</span>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition duration-300 group reveal">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-5 group-hover:bg-emerald-500 group-hover:text-slate-950 transition duration-300 transform group-hover:rotate-6">
+                            <i class="fa-solid fa-power-off text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Mati Total (Dead Total)</h3>
+                        <p class="text-slate-400 text-sm mb-4">Analisis jalur konslet (short), IC power, IC eMMC/UFS, atau perbaikan mesin tingkat lanjut (micro-soldering) dengan alat lab.</p>
+                        <div class="flex items-center justify-between text-xs font-semibold text-emerald-400 pt-3 border-t border-slate-800">
+                            <span>Diagnosa Teliti</span>
+                            <span>Tingkat Sukses Tinggi</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mengapa Memilih Kami -->
+        <section id="keunggulan" class="py-20 bg-slate-950">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-6 reveal">
+                        <span class="text-emerald-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                            Keunggulan Poizystore
+                        </span>
+                        <h2 class="text-3xl sm:text-4xl font-extrabold leading-tight">Kenapa Ribuan Pelanggan di Jogja Memilih Jasa Panggilan Kami?</h2>
+                        <p class="text-slate-400">
+                            Kami mengutamakan transparansi, kecepatan, dan kenyamanan Anda. Tidak perlu repot keluar rumah, macet-macetan, atau meninggalkan HP di konter berhari-hari.
+                        </p>
+
+                        <div class="space-y-4 pt-2">
+                            <div class="flex items-start space-x-4 p-2 rounded-xl hover:bg-slate-900/60 transition duration-200">
+                                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0 mt-1">
+                                    <i class="fa-solid fa-house-chimney text-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-bold text-white">Langsung ke Lokasi Anda</h4>
+                                    <p class="text-sm text-slate-400">Teknisi datang ke rumah, kos, kampus UGM/UNY/UIN, kantor, atau kafe di area Yogyakarta & Sleman.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start space-x-4 p-2 rounded-xl hover:bg-slate-900/60 transition duration-200">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 mt-1">
+                                    <i class="fa-solid fa-eye text-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-bold text-white">Service Ditonton Langsung</h4>
+                                    <p class="text-sm text-slate-400">Anda bisa melihat langsung proses pembongkaran dan perbaikan HP. Aman dari risiko penukaran sparepart.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start space-x-4 p-2 rounded-xl hover:bg-slate-900/60 transition duration-200">
+                                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0 mt-1">
+                                    <i class="fa-solid fa-tags text-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-bold text-white">Harga Termurah & Transparan</h4>
+                                    <p class="text-sm text-slate-400">Tidak ada biaya tersembunyi. Biaya service & sparepart disepakati di awal sebelum teknisi berangkat.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start space-x-4 p-2 rounded-xl hover:bg-slate-900/60 transition duration-200">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 mt-1">
+                                    <i class="fa-solid fa-shield-cat text-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-bold text-white">Garansi Hingga 3 Bulan</h4>
+                                    <p class="text-sm text-slate-400">Setiap penggantian sparepart dilengkapi garansi tertulis resmi untuk kenyamanan ekstra Anda.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coverage Area Box -->
+                    <div class="interactive-card bg-gradient-to-br from-slate-900 to-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl relative reveal">
+                        <div class="absolute -top-4 right-6 bg-cyan-500 text-slate-950 font-bold text-xs px-4 py-1.5 rounded-full shadow">
+                            Wilayah Layanan Jogja
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4 flex items-center">
+                            <i class="fa-solid fa-map-location-dot text-cyan-400 mr-3 animate-pulse"></i> Cakupan Area Panggilan
+                        </h3>
+                        <p class="text-slate-400 text-sm mb-6">
+                            Teknisi kami siap meluncur ke seluruh titik di Daerah Istimewa Yogyakarta tanpa biaya transportasi tersembunyi:
+                        </p>
+
+                        <div class="grid grid-cols-2 gap-3 mb-8">
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-sm font-medium flex items-center text-slate-300 hover:border-cyan-500/40 transition">
+                                <i class="fa-solid fa-check text-emerald-400 mr-2 text-xs"></i> Kota Yogyakarta
+                            </div>
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-sm font-medium flex items-center text-slate-300 hover:border-cyan-500/40 transition">
+                                <i class="fa-solid fa-check text-emerald-400 mr-2 text-xs"></i> Sleman / Depok / Condongcatur
+                            </div>
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-sm font-medium flex items-center text-slate-300 hover:border-cyan-500/40 transition">
+                                <i class="fa-solid fa-check text-emerald-400 mr-2 text-xs"></i> Bantul & Sekitarnya
+                            </div>
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-sm font-medium flex items-center text-slate-300 hover:border-cyan-500/40 transition">
+                                <i class="fa-solid fa-check text-emerald-400 mr-2 text-xs"></i> Area Kampus (UGM/UNY/UIN)
+                            </div>
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-sm font-medium flex items-center text-slate-300 hover:border-cyan-500/40 transition">
+                                <i class="fa-solid fa-check text-emerald-400 mr-2 text-xs"></i> Malioboro & Seturan
+                            </div>
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-sm font-medium flex items-center text-slate-300 hover:border-cyan-500/40 transition">
+                                <i class="fa-solid fa-check text-emerald-400 mr-2 text-xs"></i> Kulon Progo / Gunungkidul*
+                            </div>
+                        </div>
+
+                        <a href="https://wa.me/6282238675779?text=Halo%20Poizystore,%20saya%20ingin%20cek%20apakah%20alamat%20saya%20terjangkau%20teknisi." target="_blank" class="ripple-btn active:scale-95 w-full block text-center bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 py-3 rounded-xl font-semibold text-sm transition">
+                            <i class="fa-brands fa-whatsapp text-emerald-400 mr-2"></i> Konfirmasi Alamat Anda via WA
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Booking Form Section -->
+        <section id="booking" class="py-20 bg-slate-950 relative overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-emerald-950/30 via-slate-950 to-slate-950 pointer-events-none"></div>
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="text-center mb-12 reveal">
+                    <span class="text-emerald-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                        Form Booking Panggilan Interaktif
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-4 mb-3">Jadwalkan Teknisi Datang ke Tempat Anda</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">
+                        Isi form di bawah ini. Khusus Mahasiswa Jogja, masukkan KTM Anda lalu putar roda gacha untuk dapat potongan diskon melimpah!
+                    </p>
+                </div>
+
+                <div class="reveal bg-gradient-to-b from-slate-900 to-slate-900/95 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl neon-border">
+                    
+                    <!-- GACHA WHEEL BOX -->
+                    <div class="mb-10 p-6 bg-slate-950/90 rounded-2xl border border-cyan-500/30 relative overflow-hidden text-center">
+                        <div class="flex items-center justify-between mb-3">
+                            <label class="block text-sm font-bold text-cyan-400 flex items-center">
+                                <i class="fa-solid fa-dharmachakra text-lg mr-2 animate-spin" style="animation-duration: 8s;"></i> Gacha Diskon Mahasiswa (Potongan s/d 100rb)
+                            </label>
+                            <span class="text-[10px] bg-cyan-950 border border-cyan-500/40 text-cyan-300 px-2.5 py-0.5 rounded-full font-semibold uppercase">Strict: 1x Putar per KTM</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-6">Masukkan Nomor KTM / NIM Anda, lalu tekan tombol untuk memutar Roda Keberuntungan!</p>
+
+                        <div class="max-w-md mx-auto flex flex-col sm:flex-row gap-3 mb-6">
+                            <input type="text" id="ktmNumber" placeholder="Masukkan NIM/KTM (Contoh: 21/473829/TK/52123)..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-400 transition shadow-inner">
+                        </div>
+
+                        <div class="relative w-64 h-64 mx-auto mb-6 flex items-center justify-center">
+                            <div class="absolute -top-3 z-20 text-emerald-400 text-2xl drop-shadow-[0_2px_8px_rgba(16,185,129,0.8)] animate-bounce">
+                                <i class="fa-solid fa-caret-down"></i>
+                            </div>
+                            <canvas id="wheelCanvas" width="250" height="250" class="rounded-full shadow-2xl border-4 border-slate-800"></canvas>
+                        </div>
+
+                        <button type="button" id="spinWheelBtn" class="ripple-btn active:scale-95 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-extrabold px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-cyan-500/25 flex items-center justify-center space-x-2 mx-auto">
+                            <i class="fa-solid fa-play"></i>
+                            <span>Putar Roda Diskon!</span>
+                        </button>
+
+                        <div id="ktmResultBox" class="hidden mt-6 p-4 rounded-xl text-xs font-semibold transition-all"></div>
+                    </div>
+
+                    <form id="bookingForm" class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Pilih Jenis Perangkat *</label>
+                                <select id="deviceType" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                                    <option value="" disabled selected>-- Pilih Kategori Perangkat --</option>
+                                    <option value="iPhone">iPhone (Semua Seri)</option>
+                                    <option value="Android Samsung">Android Samsung</option>
+                                    <option value="Android Xiaomi / Redmi">Android Xiaomi / Redmi</option>
+                                    <option value="Android Oppo / Vivo">Android Oppo / Vivo</option>
+                                    <option value="Android Merek Lainnya">Android Merek Lainnya</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Tipe / Seri HP (Contoh: iPhone 11) *</label>
+                                <input type="text" id="deviceModel" required placeholder="Masukkan tipe HP Anda..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Jenis Kerusakan / Layanan *</label>
+                                <select id="serviceNeeded" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                                    <option value="" disabled selected>-- Pilih Kerusakan --</option>
+                                    <option value="Penggantian LCD / Layar Sentuh (Garansi 3 Bulan)">Penggantian LCD / Layar Sentuh (Garansi 3 Bulan)</option>
+                                    <option value="Penggantian Baterai (Garansi 3 Bulan)">Penggantian Baterai (Garansi 3 Bulan)</option>
+                                    <option value="Analisis iPhone Panic Full / Restarts">Analisis iPhone Panic Full / Restarts</option>
+                                    <option value="Backglass / Kaca Belakang">Backglass / Kaca Belakang</option>
+                                    <option value="Housing / Ganti Body HP">Housing / Ganti Body HP</option>
+                                    <option value="Kamera (Depan / Belakang)">Kamera (Depan / Belakang)</option>
+                                    <option value="Flexible Charger / Port USB">Flexible Charger / Port USB</option>
+                                    <option value="Sensor Proximity / TrueDepth">Sensor Proximity / TrueDepth</option>
+                                    <option value="HP Masuk Air / Terendam">HP Masuk Air / Terendam</option>
+                                    <option value="Mati Total / Restarts Continuous">Mati Total / Restarts Continuous</option>
+                                    <option value="Lainnya (Tulis di Catatan)">Lainnya (Konsultasi)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Jadwal Waktu Panggilan *</label>
+                                <select id="scheduleTime" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                                    <option value="" disabled selected>-- Pilih Waktu Kunjungan --</option>
+                                    <option value="Segera (Panggilan Darurat / Hari Ini)">Segera (Panggilan Darurat / Hari Ini)</option>
+                                    <option value="Pagi Ini (09.00 - 12.00 WIB)">Pagi Ini (09.00 - 12.00 WIB)</option>
+                                    <option value="Siang Ini (13.00 - 15.00 WIB)">Siang Ini (13.00 - 15.00 WIB)</option>
+                                    <option value="Sore / Malam (16.00 - 20.00 WIB)">Sore / Malam (16.00 - 20.00 WIB)</option>
+                                    <option value="Besok Pagi">Besok Pagi</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Nama Lengkap *</label>
+                                <input type="text" id="clientName" required placeholder="Nama Anda..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Nomor WhatsApp (Aktif) *</label>
+                                <input type="tel" id="clientWhatsApp" required placeholder="Contoh: 081234567890" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Alamat Lengkap Penjemputan / Kunjungan di Yogyakarta *</label>
+                            <textarea id="clientAddress" required rows="3" placeholder="Sertakan nama jalan, nomor rumah/kost/kantor, nama area/kecamatan (Contoh: Pogung Dalangan No. 12, Sleman dekat Kampus UGM)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition"></textarea>
+                        </div>
+
+                        <div class="pt-4">
+                            <button type="submit" class="ripple-btn active:scale-95 w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-extrabold py-4 px-8 rounded-xl shadow-xl shadow-emerald-500/20 transition transform hover:-translate-y-0.5 flex items-center justify-center space-x-3 text-base">
+                                <i class="fa-brands fa-whatsapp text-2xl"></i>
+                                <span>Kirim Booking via WhatsApp ke Teknisi</span>
+                            </button>
+                            <p class="text-xs text-center text-slate-400 mt-3">
+                                <i class="fa-solid fa-lock text-cyan-400 mr-1"></i> Data Anda aman dan langsung terhubung ke nomor WhatsApp resmi Poizystore (0822-3867-5779).
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION IPHONE PANIC FULL LOG ANALYZER MENU -->
+        <section id="panic-analyzer" class="py-20 bg-slate-900/60 relative border-t border-slate-800">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12 reveal">
+                    <span class="text-cyan-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-cyan-500/10 px-3.5 py-1.5 rounded-full border border-cyan-500/20">
+                        🔍 Pembaca Awal Panic Log
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-4 mb-3">Cek Kerusakan Panic Full iPhone Anda</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">
+                        iPhone Anda sering restart sendiri setiap 3-5 menit? Paste teks log dari menu <span class="text-slate-200 font-semibold">Pengaturan > Privasi & Keamanan > Analisis & Peningkatan > Data Analisis</span> (pilih log <code class="text-cyan-400">panic-full...</code>) atau gunakan contoh simulasi untuk memahami signature. Hasil pembacaan adalah petunjuk awal, bukan vonis komponen rusak.
+                    </p>
+                </div>
+
+                <div class="interactive-card bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl neon-border reveal">
+                    
+                    <div class="mb-6 p-4 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs text-slate-400 flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-info text-cyan-400 text-lg shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong class="text-slate-200 block mb-1">Cara Mengambil Panic Log di iPhone:</strong>
+                            Buka <span class="text-slate-300">Pengaturan</span> ➔ <span class="text-slate-300">Privasi & Keamanan</span> ➔ <span class="text-slate-300">Analisis & Peningkatan</span> ➔ <span class="text-slate-300">Data Analisis</span>. Cari file berawalan <code class="text-cyan-400 bg-slate-900 px-1 py-0.5 rounded">panic-full-202X-...</code>, salin isinya lalu tempelkan pada kolom di bawah.
+                        </div>
+                    </div>
+
+                    <div class="mb-6 p-4 bg-amber-950/30 rounded-2xl border border-amber-500/30 text-xs text-amber-100">
+                        <strong class="block mb-1">Penting — batas interpretasi</strong>
+                        Panic log menunjukkan subsistem atau proses yang gagal, bukan selalu nama komponen yang harus diganti.
+                        Kode sensor-array SMC harus dicocokkan dengan product identifier iPhone yang tepat. Jangan mengganti flex,
+                        baterai, NAND, atau IC hanya berdasarkan satu kata di log. Simpan cadangan data sebelum pemeriksaan lanjutan.
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Pilih Contoh Signature (opsional)</label>
+                            <select id="panicPresetSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-500 transition">
+                                <option value="">-- Pilih contoh signature (data simulasi) --</option>
+                                <option value="prs0">Missing sensor: prs0 (barometer / charge-port flex)</option>
+                                <option value="mic1">Missing sensor: mic1 (mikrofon bawah / charge-port flex)</option>
+                                <option value="mic2">Missing sensor: mic2 (mikrofon sekunder / power-button flex)</option>
+                                <option value="tg0b">Missing sensor: TG0B (sensor baterai)</option>
+                                <option value="watchdog">Userspace watchdog: wifid (proses sistem)</option>
+                                <option value="ans">ANS2 / NVMe (subsistem penyimpanan)</option>
+                                <option value="i2c">I2C error dengan nama device (perlu skematik model)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Pilih Seri iPhone Anda</label>
+                            <select id="panicDeviceModel" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-500 transition">
+                                <option value="iPhone X / XS / XR / XS Max">iPhone X / XS / XR / XS Max</option>
+                                <option value="iPhone 11 / 11 Pro / 11 Pro Max" selected>iPhone 11 / 11 Pro / 11 Pro Max</option>
+                                <option value="iPhone 12 / 12 Mini / 12 Pro / 12 Pro Max">iPhone 12 Series</option>
+                                <option value="iPhone 13 / 13 Mini / 13 Pro / 13 Pro Max">iPhone 13 Series</option>
+                                <option value="iPhone 14 / 14 Plus / 14 Pro / 14 Pro Max">iPhone 14 Series</option>
+                                <option value="iPhone 15 / 15 Plus / 15 Pro / 15 Pro Max">iPhone 15 Series</option>
+                                <option value="iPhone 16 Series">iPhone 16 Series</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Tempelkan (Paste) Teks Panic Log Di Sini</label>
+                        <textarea id="panicLogInput" rows="5" placeholder="Contoh: { ... 'panicString' : 'panic(cpu 1 caller 0xfffffff01e6a4b2c): Missing sensor(s): PRS0 (contoh simulasi, bukan log asli)' }" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-300 text-xs font-mono focus:outline-none focus:border-cyan-500 transition shadow-inner"></textarea>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button type="button" id="analyzePanicBtn" class="ripple-btn active:scale-95 flex-1 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-extrabold py-3.5 px-6 rounded-xl text-sm transition shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>Analisis Teks Panic Log Sekarang</span>
+                        </button>
+                        <button type="button" id="clearPanicBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3.5 px-5 rounded-xl text-sm transition">
+                            Reset
+                        </button>
+                    </div>
+
+                    <div id="panicResultBox" class="hidden mt-8 p-6 rounded-2xl bg-slate-950 border border-slate-800 transition-all">
+                        <div class="flex items-center space-x-3 mb-4 pb-3 border-b border-slate-800">
+                            <div id="panicIconContainer" class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-stethoscope"></i>
+                            </div>
+                            <div>
+                                <h4 id="panicTitle" class="text-base font-bold text-white">Hasil Analisis Diagnosa Panic Log</h4>
+                                <span id="panicSeverityBadge" class="text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full font-semibold">Tingkat Kepastian: belum dinilai</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 text-sm">
+                            <p class="text-slate-300"><strong class="text-cyan-400">Subsystem / petunjuk:</strong> <span id="panicComponentText">-</span></p>
+                            <p class="text-slate-300"><strong class="text-emerald-400">Bukti yang ditemukan:</strong> <span id="panicEvidenceText">-</span></p>
+                            <p class="text-slate-300"><strong class="text-emerald-400">Interpretasi:</strong> <span id="panicDescText">-</span></p>
+                            <p class="text-slate-300"><strong class="text-amber-400">Langkah pemeriksaan:</strong> <span id="panicSolutionText">-</span></p>
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <span class="text-xs text-slate-400"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Teknisi Poizystore Siap Dipanggil ke Rumah Anda</span>
+                            <a id="consultPanicWaBtn" href="#" target="_blank" class="ripple-btn active:scale-95 w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>Konsultasi Hasil Ini ke WhatsApp</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimoni Pelanggan -->
+        <section id="testimoni" class="py-20 bg-slate-900/50 border-t border-slate-800/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-16 reveal">
+                    <span class="text-cyan-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
+                        Testimoni Pelanggan
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-4 mb-4">Apa Kata Mereka yang Sudah Menggunakan Jasa Kami?</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">
+                        Kepuasan pelanggan di Yogyakarta adalah prioritas utama kami.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-3xl p-6 relative reveal">
+                        <div class="flex items-center space-x-1 text-amber-400 mb-4 text-sm">
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                        </div>
+                        <p class="text-slate-300 text-sm mb-6 italic">
+                            "Luar biasa praktis! iPhone 11 saya sering restart sendiri, pas dites di web ini ketemu masalahnya di flex charging (indikasi PRS0/Mic1). Langsung panggil masnya ke Pogung, nggak sampai 40 menit beres dan bergaransi 3 bulan!"
+                        </p>
+                        <div class="flex items-center space-x-3 pt-4 border-t border-slate-800">
+                            <div class="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                                RP
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Rian Pratama</h4>
+                                <p class="text-xs text-slate-400">Mahasiswa UGM (Jogja)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-3xl p-6 relative reveal">
+                        <div class="flex items-center space-x-1 text-amber-400 mb-4 text-sm">
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                        </div>
+                        <p class="text-slate-300 text-sm mb-6 italic">
+                            "Baterai Samsung anak saya drop dan kembung. Datang ontime ke rumah di Condongcatur Sleman, harganya transparan dan jauh lebih murah dibanding konter mall. Dikasih garansi pula."
+                        </p>
+                        <div class="flex items-center space-x-3 pt-4 border-t border-slate-800">
+                            <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                                SW
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Ibu Siska Wulandari</h4>
+                                <p class="text-xs text-slate-400">Ibu Rumah Tangga (Sleman)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-3xl p-6 relative reveal">
+                        <div class="flex items-center space-x-1 text-amber-400 mb-4 text-sm">
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                        </div>
+                        <p class="text-slate-300 text-sm mb-6 italic">
+                            "Ponsel sempat masuk air kena hujan waktu perjalanan pulang kerja di Malioboro dan mati total. Alhamdulillah teknisi Poizystore berhasil menyelamatkan mesinnya. Mantap jiwa jasanya!"
+                        </p>
+                        <div class="flex items-center space-x-3 pt-4 border-t border-slate-800">
+                            <div class="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                                DA
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Dimas Anggara</h4>
+                                <p class="text-xs text-slate-400">Karyawan Swasta (Jogja)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="py-20 bg-slate-950">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 reveal">
+                    <span class="text-emerald-400 text-xs sm:text-sm font-semibold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                        Pertanyaan Umum
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-4 mb-3">FAQ (Frequently Asked Questions)</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">Hal-hal yang sering ditanyakan seputar layanan service panggilan kami.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 reveal">
+                        <h3 class="text-base font-bold text-white mb-2 flex items-center"><i class="fa-solid fa-circle-question text-cyan-400 mr-2"></i> Apakah ada tambahan biaya transportasi untuk panggilan ke rumah?</h3>
+                        <p class="text-slate-400 text-sm">Untuk wilayah dalam Kota Yogyakarta dan Kabupaten Sleman utama, biaya kunjungan GRATIS atau sudah termasuk dalam estimasi harga service yang disepakati.</p>
+                    </div>
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 reveal">
+                        <h3 class="text-base font-bold text-white mb-2 flex items-center"><i class="fa-solid fa-circle-question text-cyan-400 mr-2"></i> Berapa lama proses pengerjaan di tempat pelanggan?</h3>
+                        <p class="text-slate-400 text-sm">Sebagian besar penggantian sparepart seperti LCD, baterai, kamera, atau flexible charger hanya memakan waktu 20 hingga 45 menit saja.</p>
+                    </div>
+                    <div class="interactive-card bg-slate-900 border border-slate-800 rounded-2xl p-6 reveal">
+                        <h3 class="text-base font-bold text-white mb-2 flex items-center"><i class="fa-solid fa-circle-question text-cyan-400 mr-2"></i> Bagaimana cara klaim garansi service 3 bulan?</h3>
+                        <p class="text-slate-400 text-sm">Anda cukup menghubungi nomor WhatsApp kami dengan menunjukkan bukti chat / nota digital yang diberikan teknisi saat perbaikan selesai.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- SECTION 2: TAB CEK GARANSI PELANGGAN -->
+    <div id="sectionGaransi" class="main-section hidden py-24 bg-slate-950 min-h-screen">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6">
+            <div class="text-center mb-8 reveal">
+                <div class="inline-block p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 mb-3 text-2xl">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-3xl font-extrabold text-white mb-2">Cek Status Garansi Servis</h2>
+                <p class="text-slate-400 text-sm">Masukkan nomor invoice pada nota untuk melihat masa aktif garansi. Data diperiksa dari database server.</p>
+            </div>
+
+            <div class="interactive-card bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl neon-border reveal">
+                <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                    <input type="text" id="inputResiCustomer" placeholder="Nomor invoice sesuai nota" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 uppercase font-mono text-sm focus:outline-none focus:border-emerald-500">
+                    <button onclick="jalankanCekGaransiCustomer()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition shadow-lg">
+                        Cek Garansi
+                    </button>
+                </div>
+                <div id="hasilGaransiBox" class="hidden p-5 rounded-2xl bg-slate-950 border border-slate-800 text-sm"></div>
+            </div>
+
+            <div class="text-center mt-6">
+                <button onclick="switchSection('home')" class="text-cyan-400 hover:underline text-xs"><i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Beranda Utama</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 3: TAB ADMIN & INVOICE GENERATOR GABUNGAN -->
+    <div id="sectionAdmin" class="main-section hidden py-24 bg-slate-950 min-h-screen">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6">
+            
+            <!-- Login Admin Card -->
+            <div id="adminLoginCard" class="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl neon-border reveal">
+                <div class="text-center mb-6">
+                    <div class="inline-block p-4 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 mb-3 text-2xl">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <h2 class="text-2xl font-extrabold text-white mb-1">Login Administrator poizystore</h2>
+                    <p class="text-slate-400 text-xs">Masuk menggunakan akun admin yang dikonfigurasi pada server. Data invoice disimpan terpusat di database server.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Username</label>
+                        <input type="text" id="adminUser" placeholder="Username admin" autocomplete="username" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Password</label>
+                        <input type="password" id="adminPass" placeholder="Password admin" autocomplete="current-password" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <p id="loginErrorMsg" class="text-rose-400 text-xs hidden font-medium text-center"></p>
+                    <button onclick="prosesLoginAdmin()" class="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-extrabold py-3.5 rounded-xl text-sm transition shadow-lg">
+                        Masuk Panel Admin & Invoice
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Invoice Generator (Tabbed & Clean UI) -->
+            <div id="adminDashboardCard" class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl neon-border reveal">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-800">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">poizystore • Admin & Invoice Generator</h2>
+                        <p class="text-xs text-slate-400">Buat nota, atur garansi, DP, dan kirim ke WhatsApp tanpa ribet.</p>
+                    </div>
+                    <button onclick="prosesLogoutAdmin()" class="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg font-semibold transition">
+                        Logout
+                    </button>
+                </div>
+
+                <!-- Tabs for Form vs Preview -->
+                <div class="flex gap-2 mb-6 bg-slate-950 p-1.5 rounded-xl border border-slate-800 no-print">
+                    <button class="flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition bg-cyan-500 text-slate-950" id="tabFormBtn" onclick="switchAdminTab('form')">Formulir Invoice</button>
+                    <button class="flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition text-slate-400 hover:text-white" id="tabPreviewBtn" onclick="switchAdminTab('preview')">Pratinjau Struk & Aksi</button>
+                </div>
+
+                <!-- PANEL 1: FORMULIR -->
+                <div id="adminFormPanel" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Nama Pelanggan</label>
+                            <input type="text" id="custName" placeholder="Contoh: Budi Santoso" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">No. WhatsApp Pelanggan</label>
+                            <input type="text" id="custPhone" placeholder="Contoh: 628123456789" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Model / Seri Perangkat</label>
+                            <input type="text" id="devModel" placeholder="Contoh: iPhone 11" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Garansi Perbaikan</label>
+                            <select id="warrantySelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200">
+                                <option value="1">1 Bulan</option>
+                                <option value="3" selected>3 Bulan</option>
+                                <option value="6">6 Bulan</option>
+                                <option value="0">Tidak Ada Garansi</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Metode Pembayaran</label>
+                            <select id="payMethod" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200">
+                                <option value="Tunai">Tunai</option>
+                                <option value="Transfer Bank">Transfer Bank</option>
+                                <option value="QRIS">QRIS</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Down Payment / DP (Rp)</label>
+                            <input type="number" id="dpAmount" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Rincian Perbaikan / Suku Cadang</label>
+                        <div id="itemsContainer" class="space-y-2 mb-2">
+                            <div class="item-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                                <input type="text" placeholder="Nama Barang/Jasa" class="item-desc sm:col-span-6 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200" value="Penggantian Komponen Hardware">
+                                <input type="number" placeholder="Qty" class="item-qty sm:col-span-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200" value="1">
+                                <input type="number" placeholder="Harga (Rp)" class="item-price sm:col-span-3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200" value="0">
+                                <button type="button" class="sm:col-span-1 bg-rose-600/20 text-rose-400 border border-rose-500/30 rounded-xl py-2 text-xs font-bold hover:bg-rose-600 hover:text-white transition" onclick="removeItem(this)">X</button>
+                            </div>
+                        </div>
+                        <button type="button" class="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-400 px-3 py-1.5 rounded-lg font-semibold transition" onclick="addItem()">+ Tambah Baris Item</button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Catatan & Ketentuan Garansi</label>
+                        <textarea id="notesText" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200">Garansi tidak berlaku apabila kerusakan disebabkan oleh kesalahan pengguna (human error), terkena cairan, atau segel garansi rusak.</textarea>
+                    </div>
+
+                    <button type="button" class="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-extrabold py-3.5 rounded-xl text-sm transition shadow-lg" onclick="generateInvoiceAndPreview()">
+                        Buat Invoice & Lihat Pratinjau
+                    </button>
+                </div>
+
+                <!-- PANEL 2: PRATINJAU & AKSI -->
+                <div id="adminPreviewPanel" class="space-y-4 hidden">
+                    <div id="invoiceReceipt" class="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-sm text-slate-300 font-mono space-y-3">
+                        <div class="flex justify-between border-b border-slate-800 pb-3">
+                            <div>
+                                <strong class="text-white text-base">POIZYSTORE</strong><br>
+                                <span class="text-xs text-slate-400" id="invDate">Tanggal: -</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs text-cyan-400 font-bold" id="invNo">INV/PZS/----</span>
+                            </div>
+                        </div>
+                        <div class="text-xs space-y-1">
+                            <div><strong>Pelanggan:</strong> <span id="pName">-</span></div>
+                            <div><strong>Perangkat:</strong> <span id="pDevice">-</span></div>
+                            <div><strong>Garansi:</strong> <span id="pWarranty">-</span></div>
+                            <div><strong>Pembayaran:</strong> <span id="pPayMethod">-</span></div>
+                        </div>
+                        <div class="border-t border-b border-slate-800 py-2">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="text-slate-400 border-b border-slate-800">
+                                        <th class="text-left pb-1">Deskripsi</th>
+                                        <th class="text-center pb-1">Qty</th>
+                                        <th class="text-right pb-1">Harga</th>
+                                        <th class="text-right pb-1">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pItemsBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="text-xs space-y-1">
+                            <div class="flex justify-between"><span>Subtotal:</span> <span id="pSubtotal">Rp 0</span></div>
+                            <div class="flex justify-between"><span>Down Payment (DP):</span> <span id="pDp">Rp 0</span></div>
+                            <div class="flex justify-between font-bold"><span>Status:</span> <span id="pStatus">-</span></div>
+                            <div class="flex justify-between text-emerald-400 font-bold pt-1 border-t border-slate-800"><span>Sisa Pelunasan:</span> <span id="pRemaining">Rp 0</span></div>
+                        </div>
+                        <div class="text-[11px] text-slate-400 border-t border-slate-800 pt-2" id="pNotes"></div>
+                        <div class="text-[10px] text-center text-cyan-400 border-t border-dashed border-slate-800 pt-2">
+                            [POIZYSTORE INFO]<br>Terima kasih telah mempercayakan perbaikan perangkat Anda kepada kami. Dapatkan potongan harga khusus untuk servisan berikutnya!
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 no-print">
+                        <button type="button" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-xl text-xs transition shadow" onclick="saveToDatabaseAndHistory()">
+                            💾 Simpan ke Database Garansi
+                        </button>
+                        <button type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition shadow" onclick="window.print()">
+                            🖨️ Cetak / Simpan PDF
+                        </button>
+                        <button type="button" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold py-3 rounded-xl text-xs transition shadow" onclick="copyWhatsAppText()">
+                            📋 Salin Teks WhatsApp
+                        </button>
+                        <button type="button" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition shadow" onclick="sendWhatsApp()">
+                            💬 Kirim ke WhatsApp
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="text-center mt-6">
+                <button onclick="switchSection('home')" class="text-cyan-400 hover:underline text-xs"><i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Beranda Utama</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 text-slate-400 text-sm py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div class="space-y-4 md:col-span-2">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center text-slate-950 font-bold">
+                            <i class="fa-solid fa-screwdriver-wrench text-lg"></i>
+                        </div>
+                        <span class="text-2xl font-extrabold text-white">Poizystore</span>
+                    </div>
+                    <p class="text-sm text-slate-400 max-w-md">
+                        Jasa service HP panggilan ke rumah terpercaya, termurah, dan bergaransi khusus untuk wilayah Yogyakarta, Sleman, Bantul, dan sekitarnya. Spesialis iPhone & Android.
+                    </p>
+                    <div class="flex space-x-3 text-lg">
+                        <a href="https://wa.me/6282238675779" target="_blank" class="ripple-btn w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-emerald-400 hover:bg-slate-700 transition"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-4">Layanan Cepat</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><button onclick="switchSection('home')" class="hover:text-cyan-400 transition text-left">Kalkulator Estimasi Biaya</button></li>
+                        <li><button onclick="switchSection('home')" class="hover:text-cyan-400 transition text-left">Ganti LCD iPhone (Garansi)</button></li>
+                        <li><button onclick="switchSection('home')" class="hover:text-cyan-400 transition text-left">Check Panic Full iPhone</button></li>
+                        <li><button onclick="switchSection('garansi')" class="hover:text-emerald-400 transition text-left">Cek Masa Garansi Servis</button></li>
+                        <li><button onclick="switchSection('admin')" class="hover:text-cyan-400 transition text-left">Panel Admin & Invoice</button></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-4">Kontak & Operasional</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center"><i class="fa-solid fa-phone text-cyan-400 mr-2"></i> 0822-3867-5779 (WhatsApp)</li>
+                        <li class="flex items-center"><i class="fa-solid fa-clock text-cyan-400 mr-2"></i> Setiap Hari: 08.00 - 21.00 WIB</li>
+                        <li class="flex items-center"><i class="fa-solid fa-location-dot text-cyan-400 mr-2"></i> Yogyakarta, Sleman, Bantul</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
+                &copy; 2026 Poizystore. All rights reserved. Spesialis Service HP Panggilan ke Rumah Jogja.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactive Script -->
+    <script>
+        function escapeHTML(value) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return String(value ?? '').replace(/[&<>"']/g, char => map[char]);
+        }
+
+        // localStorage dapat ditolak browser (mode privat/kebijakan storage); semua akses harus aman.
+        function safeStorageGet(key) {
+            try { return window.localStorage.getItem(key); }
+            catch (error) { console.warn('Storage tidak dapat dibaca:', error); return null; }
+        }
+
+        function safeStorageSet(key, value) {
+            try { window.localStorage.setItem(key, value); return true; }
+            catch (error) { console.warn('Storage tidak dapat ditulis:', error); return false; }
+        }
+
+        function safeLocalDateISO(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseValidLocalDate(value) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null;
+            const [year, month, day] = value.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day ? date : null;
+        }
+
+        // Tambah bulan kalender tanpa overflow (31 Jan + 1 bulan menjadi hari terakhir Februari).
+        function addMonthsClamped(date, months) {
+            const result = new Date(date.getFullYear(), date.getMonth(), 1);
+            const targetMonth = result.getMonth() + months;
+            result.setMonth(targetMonth);
+            const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+            result.setDate(Math.min(date.getDate(), lastDay));
+            return result;
+        }
+
+        function createInvoiceNumber() {
+            const datePart = safeLocalDateISO().replace(/-/g, '');
+            let randomPart;
+            try {
+                const bytes = new Uint32Array(1);
+                window.crypto.getRandomValues(bytes);
+                randomPart = bytes[0].toString(36).toUpperCase().padStart(7, '0').slice(-7);
+            } catch (_) {
+                randomPart = Math.random().toString(36).slice(2, 9).toUpperCase().padEnd(7, '0');
+            }
+            return `INV/PZS/${datePart}-${randomPart}`;
+        }
+
+        // Tab Section Switcher
+        function switchSection(secName) {
+            document.querySelectorAll('.main-section').forEach(el => el.classList.add('hidden'));
+            if (secName === 'home') {
+                document.getElementById('sectionHome').classList.remove('hidden');
+            } else if (secName === 'garansi') {
+                document.getElementById('sectionGaransi').classList.remove('hidden');
+            } else if (secName === 'admin') {
+                document.getElementById('sectionAdmin').classList.remove('hidden');
+                cekStatusLoginAdmin();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleMobMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        // 1. PROMO POPUP MODAL LOGIC
+        const promoPopupOverlay = document.getElementById('promoPopupOverlay');
+        const closePopupBtn = document.getElementById('closePopupBtn');
+        const dismissPopupBtn = document.getElementById('dismissPopupBtn');
+        const popupActionBtn = document.getElementById('popupActionBtn');
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                promoPopupOverlay.classList.add('show-popup');
+            }, 1200);
+        });
+
+        function closePopup() {
+            promoPopupOverlay.classList.remove('show-popup');
+        }
+
+        closePopupBtn.addEventListener('click', closePopup);
+        dismissPopupBtn.addEventListener('click', closePopup);
+        popupActionBtn.addEventListener('click', closePopup);
+
+        promoPopupOverlay.addEventListener('click', (e) => {
+            if (e.target === promoPopupOverlay) {
+                closePopup();
+            }
+        });
+
+        // 2. AUTO SLIDE BANNER
+        const slides = document.querySelectorAll('#topBannerSlider .slide-item');
+        let currentSlide = 0;
+        setInterval(() => {
+            slides[currentSlide].classList.remove('active-slide');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active-slide');
+        }, 4000);
+
+        // 3. Custom Cursor Glow
+        const cursorGlow = document.getElementById('cursorGlow');
+        document.addEventListener('mousemove', (e) => {
+            cursorGlow.style.left = e.clientX + 'px';
+            cursorGlow.style.top = e.clientY + 'px';
+        });
+
+        // 4. Scroll Reveal
+        function revealOnScroll() {
+            const reveals = document.querySelectorAll('.reveal');
+            for (let i = 0; i < reveals.length; i++) {
+                const windowHeight = window.innerHeight;
+                const elementTop = reveals[i].getBoundingClientRect().top;
+                const elementVisible = 80;
+                if (elementTop < windowHeight - elementVisible) {
+                    reveals[i].classList.add('active');
+                }
+            }
+        }
+        window.addEventListener('scroll', revealOnScroll);
+        revealOnScroll();
+
+        // 5. Ripple Effect
+        document.addEventListener('click', function (e) {
+            const target = e.target.closest('.ripple-btn');
+            if (target) {
+                const rect = target.getBoundingClientRect();
+                const ripple = document.createElement('span');
+                const diameter = Math.max(rect.width, rect.height);
+                const radius = diameter / 2;
+
+                ripple.style.width = ripple.style.height = `${diameter}px`;
+                ripple.style.left = `${e.clientX - rect.left - radius}px`;
+                ripple.style.top = `${e.clientY - rect.top - radius}px`;
+                ripple.classList.add('ripple');
+
+                const existingRipple = target.querySelector('.ripple');
+                if (existingRipple) {
+                    existingRipple.remove();
+                }
+
+                target.appendChild(ripple);
+            }
+        });
+
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 6. ESTIMATION CALCULATOR
+        const calculateCostBtn = document.getElementById('calculateCostBtn');
+        const calcServiceType = document.getElementById('calcServiceType');
+        const calcDeviceSeries = document.getElementById('calcDeviceSeries');
+        const calcResultBox = document.getElementById('calcResultBox');
+        const calcPriceDisplay = document.getElementById('calcPriceDisplay');
+        const calcDescDisplay = document.getElementById('calcDescDisplay');
+
+        const costDatabase = {
+            lcd: {
+                iphone_x: { price: "Rp 350.000 - Rp 450.000", time: "30 Menit" },
+                iphone_11: { price: "Rp 300.000 - Rp 500.000", time: "30 Menit" },
+                iphone_12: { price: "Rp 500.000 - Rp 600.000", time: "35 Menit" },
+                iphone_13: { price: "Rp 500.000 - Rp 900.000", time: "35 Menit" },
+                iphone_14: { price: "Rp 600.000 - Rp 1.100.000", time: "40 Menit" },
+                iphone_15: { price: "Rp 700.000 - Rp 1.400.000", time: "40 Menit" },
+                iphone_16: { price: "Rp 1.700.000 - Rp 3.900.000", time: "45 Menit" },
+                android: { price: "Rp 200.000 - Rp 600.000", time: "30 Menit" }
+            },
+            baterai: {
+                iphone_x: { price: "Rp 169.000 - Rp 200.000", time: "25 Menit" },
+                iphone_11: { price: "Rp 250.000", time: "25 Menit" },
+                iphone_12: { price: "Rp 250.000 - Rp 300.000", time: "30 Menit" },
+                iphone_13: { price: "Rp 300.000 - Rp 400.000", time: "30 Menit" },
+                iphone_14: { price: "Rp 400.000", time: "30 Menit" },
+                iphone_15: { price: "Rp 450.000 - Rp 600.000", time: "35 Menit" },
+                iphone_16: { price: "Rp 600.000 - Rp 800.000", time: "35 Menit" },
+                android: { price: "Rp 150.000 - Rp 300.000", time: "25 Menit" }
+            },
+            charger: { default: { price: "Rp 150.000 - Rp 350.000", time: "30 Menit" } },
+            kamera: { default: { price: "Rp 200.000 - Rp 700.000", time: "35 Menit" } },
+            backglass: { default: { price: "Rp 250.000 - Rp 600.000", time: "45 Menit" } },
+            water: { default: { price: "Rp 100.000 - Rp 250.000", time: "45 Menit (Ultrasonic)" } }
+        };
+
+        calculateCostBtn.addEventListener('click', () => {
+            const service = calcServiceType.value;
+            const series = calcDeviceSeries.value;
+            let res = { price: "Rp 200.000 - Rp 500.000", time: "30 Menit" };
+
+            if (costDatabase[service]) {
+                if (costDatabase[service][series]) {
+                    res = costDatabase[service][series];
+                } else {
+                    res = costDatabase[service].default || { price: "Rp 250.000 - Rp 500.000", time: "30 Menit" };
+                }
+            }
+
+            calcPriceDisplay.textContent = res.price;
+            calcDescDisplay.innerHTML = `Estimasi pengerjaan langsung di tempat Anda: <strong>${res.time}</strong> • Include Garansi Resmi 3 Bulan.`;
+            calcResultBox.classList.remove('hidden');
+        });
+
+        // 7. PANIC-FULL READER
+        // Gunakan signature spesifik. Kata umum tidak boleh langsung memvonis komponen.
+        const panicPresetSelect = document.getElementById('panicPresetSelect');
+        const panicLogInput = document.getElementById('panicLogInput');
+        const analyzePanicBtn = document.getElementById('analyzePanicBtn');
+        const clearPanicBtn = document.getElementById('clearPanicBtn');
+        const panicResultBox = document.getElementById('panicResultBox');
+        const panicTitle = document.getElementById('panicTitle');
+        const panicComponentText = document.getElementById('panicComponentText');
+        const panicEvidenceText = document.getElementById('panicEvidenceText');
+        const panicDescText = document.getElementById('panicDescText');
+        const panicSolutionText = document.getElementById('panicSolutionText');
+        const panicSeverityBadge = document.getElementById('panicSeverityBadge');
+        const consultPanicWaBtn = document.getElementById('consultPanicWaBtn');
+
+        const panicSamples = {
+            prs0: '{"panicString":"panic(cpu 0 caller 0x0): userspace watchdog timeout; Missing sensor(s): prs0"}',
+            mic1: '{"panicString":"panic(cpu 0 caller 0x0): userspace watchdog timeout; Missing sensor(s): mic1"}',
+            mic2: '{"panicString":"panic(cpu 0 caller 0x0): userspace watchdog timeout; Missing sensor(s): mic2"}',
+            tg0b: '{"panicString":"panic(cpu 0 caller 0x0): userspace watchdog timeout; Missing sensor(s): TG0B"}',
+            watchdog: '{"panicString":"panic(cpu 0 caller 0x0): userspace watchdog timeout: no successful checkins from wifid"}',
+            ans: '{"panicString":"panic(cpu 0 caller 0x0): ANS2 NVMe command timeout"}',
+            i2c: '{"panicString":"panic(cpu 0 caller 0x0): i2c error for device audio-speaker-top"}'
+        };
+
+        function extractPanicField(source, fieldName) {
+            const pattern = new RegExp('"' + fieldName + '"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"', 'i');
+            const match = source.match(pattern);
+            if (!match) return '';
+            try { return JSON.parse('"' + match[1] + '"'); }
+            catch (_) { return match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'); }
+        }
+
+        function hasPanicToken(text, token) {
+            return new RegExp('(^|[^a-z0-9_])' + token + '([^a-z0-9_]|$)', 'i').test(text);
+        }
+
+        function analyzePanicText(source) {
+            const panicString = extractPanicField(source, 'panicString');
+            const product = extractPanicField(source, 'product');
+            const osVersion = extractPanicField(source, 'os_version');
+            const bugType = extractPanicField(source, 'bug_type');
+            const missingMatch = (panicString.match(/missing sensor\(s\)\s*:\s*([^\r\n]+)/i) || source.match(/missing sensor\(s\)\s*:\s*([^\r\n]+)/i));
+            const missingSensors = missingMatch ? missingMatch[1].trim() : '';
+            const signature = (panicString + '\n' + missingSensors).toLowerCase();
+            const meta = [
+                product ? 'Product ID: ' + product : 'Product ID tidak tercantum',
+                osVersion ? 'iOS: ' + osVersion : '',
+                bugType ? 'bug_type: ' + bugType : ''
+            ].filter(Boolean).join(' • ');
+
+            const result = (title, component, evidence, confidence, desc, solution) =>
+                ({ title, component, evidence, confidence, desc, solution, meta });
+
+            if (!panicString && !/panic\s*\(\s*cpu|bug_type["'\s:]+210/i.test(source)) {
+                return result(
+                    'Format belum dikenali sebagai Panic Full',
+                    'Belum ada subsystem yang dapat diidentifikasi',
+                    'Tidak ditemukan field panicString, pola panic(cpu), atau bug_type 210.',
+                    'Tidak cukup bukti',
+                    'Teks mungkin bukan file panic-full, terpotong, atau tidak memuat signature utama.',
+                    'Tempel isi file panic-full lengkap (.ips atau teks), termasuk bagian panicString. Hapus serial number atau data pribadi sebelum membagikannya.'
+                );
+            }
+
+            // Sensor names are more specific than generic words such as "thermal" or "battery".
+            if (hasPanicToken(signature, 'prs0') || hasPanicToken(signature, 'mic1')) {
+                const token = hasPanicToken(signature, 'prs0') ? 'PRS0' : 'Mic1';
+                return result(
+                    'Indikasi sensor pada jalur charge-port',
+                    'Sensor barometer (PRS0) / mikrofon bawah (Mic1); umumnya terkait assembly charging-port flex',
+                    'Ditemukan token ' + token + (missingSensors ? ' pada Missing sensor(s).' : ' pada panicString.'),
+                    'Petunjuk kuat — perlu verifikasi fisik',
+                    'PRS0 berkaitan dengan barometer dan Mic1 dengan mikrofon bawah. Keduanya umumnya terkait assembly port pengisian. Log tidak membuktikan flex pasti rusak.',
+                    'Periksa flex charging, konektor FPC, pin, korosi, dan jalur logic board. Uji dengan part pembanding yang sesuai model sebelum mengganti komponen.'
+                );
+            }
+
+            if (hasPanicToken(signature, 'mic2')) {
+                return result(
+                    'Indikasi sensor Mic2',
+                    'Mikrofon sekunder; umumnya terkait power-button / flash flex pada sejumlah model',
+                    'Ditemukan token Mic2 pada signature log.',
+                    'Petunjuk kuat — pemetaan model tetap diperlukan',
+                    'Mic2 menunjukkan sensor mikrofon sekunder tidak merespons. Lokasi assembly dapat berbeda menurut generasi/model; ini bukan bukti Face ID rusak.',
+                    'Identifikasi model tepat, periksa power-button/flash flex dan konektornya, lalu uji dengan part pembanding sesuai model.'
+                );
+            }
+
+            const batterySensor = ['tg0b', 'tg0v', 'tb0v'].find(token => hasPanicToken(signature, token));
+            if (batterySensor) {
+                return result(
+                    'Indikasi sensor baterai / thermal',
+                    'Jalur sensor baterai (temperatur/tegangan), baterai, konektor, atau rangkaian terkait',
+                    'Ditemukan token ' + batterySensor.toUpperCase() + ' pada signature log.',
+                    'Petunjuk kuat — penyebab fisik belum dipastikan',
+                    batterySensor.toUpperCase() + ' berkaitan dengan pemantauan baterai. Pada model tertentu, jalur charging atau rangkaian board juga dapat terlibat.',
+                    'Periksa baterai, konektor baterai, konektor charging, dan jalur terkait sesuai model. Jangan mengganti baterai hanya dari token ini.'
+                );
+            }
+
+            // Sensor-array codes are model-specific: decode the number, do not guess the part.
+            const arrayMatch = signature.match(/sensor array[\s\S]{0,100}?\bis\s+([^\r\n]+)/i);
+            if (arrayMatch) {
+                const values = arrayMatch[1].match(/0x[0-9a-f]+|\b\d+\b/ig) || [];
+                const nonZero = values.map(raw => ({
+                    raw,
+                    value: Number.parseInt(raw, raw.toLowerCase().startsWith('0x') ? 16 : 10)
+                })).filter(item => Number.isFinite(item.value) && item.value !== 0);
+                const codeText = nonZero.length
+                    ? nonZero.map(code => code.raw + (code.raw.toLowerCase().startsWith('0x') ? '' : ' (0x' + code.value.toString(16) + ')')).join(', ')
+                    : 'tidak terbaca';
+                return result(
+                    'SMC sensor-array panic terdeteksi',
+                    'Sensor wajib / jalur komunikasi yang dipantau SMC — komponen spesifik belum ditentukan',
+                    'Sensor array: ' + codeText + '. ' + (product ? 'Product ID: ' + product + '.' : 'Product ID tidak ditemukan pada log.'),
+                    'Belum cukup untuk pemetaan komponen',
+                    'Kode sensor-array harus dicocokkan dengan product identifier iPhone yang tepat. Nilai sama dapat menunjuk modul berbeda pada generasi berbeda.',
+                    'Ambil product identifier dari field product pada file .ips. Cocokkan kode dengan referensi khusus model, lalu periksa flex, konektor, dan jalur board. Jangan mengganti part hanya dari angka ini.'
+                );
+            }
+
+            const watchdog = signature.match(/userspace watchdog timeout[\s\S]{0,250}?no successful checkins from\s+([a-z0-9_.-]+)/i);
+            if (watchdog) {
+                return result(
+                    'Userspace watchdog timeout',
+                    'Proses sistem: ' + watchdog[1],
+                    'Tidak ada check-in dari ' + watchdog[1] + '. ' + (missingSensors ? 'Missing sensor: ' + missingSensors : 'Tidak ditemukan Missing sensor(s).'),
+                    missingSensors ? 'Perlu korelasi dengan sensor' : 'Petunjuk proses — hardware belum terbukti',
+                    'Watchdog berarti proses yang disebut tidak merespons sesuai batas waktu. Tanpa Missing sensor(s), log tidak otomatis menunjuk flex thermal atau komponen tertentu.',
+                    'Bandingkan beberapa log dan timestamp, perbarui iOS, evaluasi perubahan software, dan lakukan diagnostik resmi. Jika berulang setelah backup dan pemeriksaan software, lanjutkan pemeriksaan hardware.'
+                );
+            }
+
+            if (/\b(ans2?|nvme|h2fmi)\b/i.test(signature)) {
+                return result(
+                    'Indikasi subsistem penyimpanan',
+                    'Storage controller / subsistem NAND (ANS, ANS2, NVMe)',
+                    'Ditemukan istilah storage controller pada panicString.',
+                    'Indikasi subsystem — IC NAND belum terkonfirmasi',
+                    'Signature mengarah ke pengendali penyimpanan. Ini tidak otomatis membuktikan chip NAND rusak; firmware, komunikasi, suplai daya, solder, atau logic board juga perlu dipertimbangkan.',
+                    'Prioritaskan backup data bila perangkat masih dapat diakses. Lakukan pemeriksaan storage dan board-level sesuai model; jangan langsung reball atau mengganti NAND.'
+                );
+            }
+
+            if (/\b(i2c|bsc failure)\b/i.test(signature)) {
+                const device = (signature.match(/for device\s+([a-z0-9_.-]+)/i) || [])[1] || '';
+                return result(
+                    'Indikasi komunikasi bus / I2C',
+                    device ? 'Perangkat pada bus I2C: ' + device : 'Bus I2C / komunikasi antar-komponen',
+                    device ? 'PanicString menyebut device ' + device + '.' : 'Ditemukan istilah I2C/BSC tanpa nama device spesifik.',
+                    'Perlu skematik dan pemeriksaan model',
+                    'I2C adalah jalur komunikasi. Nama bus saja tidak cukup untuk menyimpulkan LCD, kamera, atau komponen tertentu; pemetaan berbeda menurut model.',
+                    'Identifikasi model, baca nama device lengkap, lalu telusuri skematik/boardview. Periksa konektor, jalur SDA/SCL, suplai, dan komponen pada bus.'
+                );
+            }
+
+            if (/\baop\b/i.test(signature)) {
+                return result(
+                    'AOP panic terdeteksi',
+                    'Always-On Processor / subsistem sensor terkait',
+                    'Ditemukan istilah AOP pada panicString.',
+                    'Indikasi subsystem — komponen spesifik belum diketahui',
+                    'AOP adalah koprosesor untuk fungsi always-on dan sensor tertentu. Istilah AOP saja tidak membuktikan Face ID, proximity, atau flex tertentu rusak.',
+                    'Periksa panicString lengkap, model, riwayat benturan/cairan/perbaikan, dan log berulang. Telusuri sensor dan konektor berdasarkan skema model.'
+                );
+            }
+
+            if (/\bsep[_\s-]?panic\b|\bsep_rom\b|\bsep_mpm\b/i.test(signature)) {
+                return result(
+                    'Secure Enclave panic terdeteksi',
+                    'Secure Enclave Processor (SEP) / subsistem keamanan',
+                    'Ditemukan signature SEP pada panicString.',
+                    'Indikasi subsystem — perlu diagnostik lanjutan',
+                    'Log mengarah ke subsistem Secure Enclave. Ini bukan dasar untuk menyimpulkan Face ID flex rusak.',
+                    'Simpan log lengkap dan data penting. Periksa beberapa panic dan lakukan diagnostik resmi/board-level sesuai model sebelum perbaikan.'
+                );
+            }
+
+            return result(
+                'Kernel panic terdeteksi — penyebab belum terpetakan',
+                'Belum dapat ditentukan dari signature yang tersedia',
+                panicString ? panicString.slice(0, 500) : 'bug_type ' + (bugType || '210') + ' tanpa panicString yang terbaca.',
+                'Tidak cukup bukti untuk menunjuk komponen',
+                'Panic log adalah petunjuk diagnostik, bukan kepastian sebab-akibat. Signature ini belum cocok dengan aturan yang cukup spesifik. Tidak tepat menyimpulkan korosi, cairan, baterai, NAND, atau flex tanpa bukti.',
+                'Bandingkan beberapa log dari perangkat yang sama, lakukan pemeriksaan software dan hardware terarah, lalu validasi dengan pengukuran dan part pembanding yang sesuai model.'
+            );
+        }
+
+        panicPresetSelect.addEventListener('change', event => {
+            const sample = panicSamples[event.target.value];
+            if (sample) panicLogInput.value = sample;
+        });
+
+        analyzePanicBtn.addEventListener('click', () => {
+            const rawText = panicLogInput.value.trim();
+            const selectedDevice = document.getElementById('panicDeviceModel').value;
+            if (rawText.length > 2000000) {
+                alert('Log terlalu besar (maksimal 2 MB teks). Ambil bagian panicString dan metadata utama, atau gunakan file log yang lebih ringkas.');
+                return;
+            }
+            if (!rawText) {
+                alert('Tempel isi file panic-full atau pilih contoh signature simulasi terlebih dahulu.');
+                return;
+            }
+
+            const result = analyzePanicText(rawText);
+            panicTitle.textContent = result.title;
+            panicComponentText.textContent = result.component;
+            panicEvidenceText.textContent = result.evidence + ' Model pilihan: ' + selectedDevice + ' (perlu dicocokkan dengan Product ID log).';
+            panicDescText.textContent = result.desc;
+            panicSolutionText.textContent = result.solution;
+            panicSeverityBadge.textContent = 'Tingkat Kepastian: ' + result.confidence;
+
+            const message = [
+                'Halo Poizystore, saya ingin konsultasi hasil pembacaan awal Panic Full.',
+                'Seri pilihan: ' + selectedDevice,
+                result.meta || '',
+                'Model pilihan pengguna: ' + selectedDevice + ' (belum tentu sama dengan Product ID pada log)',
+                'Hasil: ' + result.title,
+                'Subsystem: ' + result.component,
+                'Bukti: ' + result.evidence,
+                'Kepastian: ' + result.confidence,
+                'Mohon bantu pemeriksaan lebih lanjut. Terima kasih.'
+            ].filter(Boolean).join('\n');
+            consultPanicWaBtn.href = 'https://wa.me/6282238675779?text=' + encodeURIComponent(message);
+            panicResultBox.classList.remove('hidden');
+            panicResultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        clearPanicBtn.addEventListener('click', () => {
+            panicLogInput.value = '';
+            panicPresetSelect.value = '';
+            consultPanicWaBtn.href = '#';
+            panicTitle.textContent = 'Hasil Analisis Diagnosa Panic Log';
+            panicComponentText.textContent = '-';
+            panicEvidenceText.textContent = '-';
+            panicDescText.textContent = '-';
+            panicSolutionText.textContent = '-';
+            panicSeverityBadge.textContent = 'Tingkat Kepastian: belum dinilai';
+            panicResultBox.classList.add('hidden');
+        });
+
+        // 8. GACHA KTM & WHEEL SCRIPT
+        const campusDatabase = [
+            { name: "Universitas Gadjah Mada (UGM)", keywords: ["ugm", "tk", "pa", "sv", "ge", "ku", "sp"] },
+            { name: "Universitas Negeri Yogyakarta (UNY)", keywords: ["uny"] },
+            { name: "UIN Sunan Kalijaga Yogyakarta", keywords: ["uin", "sunan kalijaga"] },
+            { name: "Universitas Islam Indonesia (UII)", keywords: ["uii"] },
+            { name: "Universitas Muhammadiyah Yogyakarta (UMY)", keywords: ["umy"] },
+            { name: "Universitas Pembangunan Nasional 'Veteran' Yogyakarta (UPN)", keywords: ["upn"] },
+            { name: "Universitas Amikom Yogyakarta", keywords: ["amikom"] },
+            { name: "Universitas Atma Jaya Yogyakarta (UAJY)", keywords: ["uajy", "atma jaya"] },
+            { name: "Universitas Sanata Dharma (USD)", keywords: ["usd", "sanata dharma"] },
+            { name: "Universitas Ahmad Dahlan (UAD)", keywords: ["uad"] },
+            { name: "Universitas Teknologi Yogyakarta (UTY)", keywords: ["uty"] },
+            { name: "Universitas Kristen Duta Wacana (UKDW)", keywords: ["ukdw"] },
+            { name: "Poltekkes Kemenkes Yogyakarta", keywords: ["poltekkes"] }
+        ];
+
+        const segments = [
+            { label: "10rb", amount: 10000, color: "#0284c7" },
+            { label: "20rb", amount: 20000, color: "#0d9488" },
+            { label: "30rb", amount: 30000, color: "#059669" },
+            { label: "50rb", amount: 50000, color: "#d97706" },
+            { label: "15rb", amount: 15000, color: "#7c3aed" },
+            { label: "100rb", amount: 100000, color: "#dc2626" }
+        ];
+
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const numSegments = segments.length;
+        const segmentAngle = (2 * Math.PI) / numSegments;
+
+        function drawWheel() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 5;
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * segmentAngle - Math.PI / 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + segmentAngle);
+                ctx.fillStyle = segments[i].color;
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#020617";
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + segmentAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 16px Inter, sans-serif";
+                ctx.fillText(`Rp ${segments[i].label}`, radius - 20, 5);
+                ctx.restore();
+            }
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 25, 0, 2 * Math.PI);
+            ctx.fillStyle = "#020617";
+            ctx.fill();
+            ctx.strokeStyle = "#06b6d4";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        drawWheel();
+
+        let isSpinning = false;
+        let currentRotation = 0;
+        let wonDiscount = null;
+        let appliedCampus = null;
+        let activeKtmNumber = null;
+
+        const spinBtn = document.getElementById('spinWheelBtn');
+        const ktmInput = document.getElementById('ktmNumber');
+        const resultBox = document.getElementById('ktmResultBox');
+
+        function normalizeKTM(rawKtm) {
+            return rawKtm.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        }
+
+        spinBtn.addEventListener('click', () => {
+            if (isSpinning) return;
+
+            const rawKtmValue = ktmInput.value.trim();
+            const normalizedKtm = normalizeKTM(rawKtmValue);
+
+            if (!rawKtmValue || normalizedKtm.length < 5) {
+                showResult('⚠️ Masukkan nomor KTM / NIM minimal 5 karakter yang valid.', 'error');
+                return;
+            }
+
+            let usedKTMs = [];
+            try {
+                const storedKTMs = JSON.parse(safeStorageGet('poizystore_used_ktm') || '[]');
+                usedKTMs = Array.isArray(storedKTMs) ? storedKTMs.filter(value => typeof value === 'string') : [];
+            } catch (error) {
+                console.warn('Data promo KTM lokal rusak; daftar penggunaan direset.', error);
+            }
+            if (usedKTMs.includes(normalizedKtm)) {
+                showResult(`⚠️ Nomor KTM / NIM <strong>${escapeHTML(rawKtmValue.toUpperCase())}</strong> sudah pernah digunakan untuk klaim Roda Diskon sebelumnya.`, 'error');
+                return;
+            }
+
+            let detectedCampus = "Mahasiswa Perguruan Tinggi Yogyakarta";
+            const lowerKtm = rawKtmValue.toLowerCase();
+            for (const campus of campusDatabase) {
+                if (campus.keywords.some(kw => lowerKtm.includes(kw))) {
+                    detectedCampus = campus.name;
+                    break;
+                }
+            }
+
+            appliedCampus = detectedCampus;
+            activeKtmNumber = normalizedKtm;
+            isSpinning = true;
+
+            const validIndices = [0, 1, 2, 3, 4, 5];
+            const winningIndex = validIndices[Math.floor(Math.random() * validIndices.length)];
+            wonDiscount = segments[winningIndex];
+
+            const degreesPerSegment = 360 / numSegments;
+            const targetSegmentCenterAngle = (winningIndex * degreesPerSegment) + (degreesPerSegment / 2);
+            const stopAngle = 360 - targetSegmentCenterAngle;
+            
+            const extraRotations = 360 * 6;
+            currentRotation += extraRotations + stopAngle - (currentRotation % 360);
+
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+            usedKTMs.push(normalizedKtm);
+            if (!safeStorageSet('poizystore_used_ktm', JSON.stringify(usedKTMs))) {
+                isSpinning = false;
+                activeKtmNumber = null;
+                appliedCampus = null;
+                wonDiscount = null;
+                showResult('Penyimpanan browser tidak tersedia. Klaim tidak dapat dicatat; aktifkan storage browser lalu coba lagi.', 'error');
+                return;
+            }
+
+            setTimeout(() => {
+                isSpinning = false;
+                showResult(`🎉 <strong>SELAMAT!</strong> KTM dari <strong>${escapeHTML(detectedCampus)}</strong> berhasil mendapatkan Potongan Diskon Gacha sebesar <span class="text-xl font-extrabold underline decoration-emerald-400">Rp ${wonDiscount.amount.toLocaleString('id-ID')}</span>!`, 'success');
+            }, 4000);
+        });
+
+        function showResult(message, type) {
+            resultBox.classList.remove('hidden', 'bg-emerald-950/90', 'border-emerald-500/50', 'text-emerald-300', 'bg-rose-950/90', 'border-rose-500/50', 'text-rose-300');
+            
+            if (type === 'success') {
+                resultBox.classList.add('bg-emerald-950/90', 'border', 'border-emerald-500/50', 'text-emerald-300');
+            } else {
+                resultBox.classList.add('bg-rose-950/90', 'border', 'border-rose-500/50', 'text-rose-300');
+            }
+            resultBox.innerHTML = `<span>${message}</span>`;
+        }
+
+        // Booking form WhatsApp generator
+        const bookingForm = document.getElementById('bookingForm');
+        bookingForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const deviceType = document.getElementById('deviceType').value;
+            const deviceModel = document.getElementById('deviceModel').value;
+            const serviceNeeded = document.getElementById('serviceNeeded').value;
+            const scheduleTime = document.getElementById('scheduleTime').value;
+            const clientName = document.getElementById('clientName').value;
+            const clientWhatsApp = document.getElementById('clientWhatsApp').value;
+            const clientAddress = document.getElementById('clientAddress').value;
+
+            let promoText = "%0A• Status Promo: *Tidak Menggunakan Promo Gacha Mahasiswa*";
+            if (appliedCampus && activeKtmNumber && wonDiscount) {
+                promoText = `%0A🎰 *PROMO GACHA DISKON MAHASISWA JOGJA*` +
+                            `%0A• Kampus: *${encodeURIComponent(appliedCampus)}*` +
+                            `%0A• No. KTM/NIM: *${encodeURIComponent(activeKtmNumber)}*` +
+                            `%0A• Hasil Gacha Diskon: *Rp ${wonDiscount.amount.toLocaleString('id-ID')}*`;
+            }
+
+            const message = `Halo Poizystore, saya ingin booking teknisi panggilan ke rumah.%0A%0A` +
+                            `*-- DETAIL BOOKING --*%0A` +
+                            `• Nama: *${encodeURIComponent(clientName)}*%0A` +
+                            `• No WhatsApp: *${encodeURIComponent(clientWhatsApp)}*%0A` +
+                            `• Kategori: *${encodeURIComponent(deviceType)}*%0A` +
+                            `• Tipe HP: *${encodeURIComponent(deviceModel)}*%0A` +
+                            `• Kerusakan: *${encodeURIComponent(serviceNeeded)}*%0A` +
+                            `• Waktu Panggilan: *${encodeURIComponent(scheduleTime)}*%0A` +
+                            `• Alamat Lengkap: *${encodeURIComponent(clientAddress)}*` +
+                            `${promoText}%0A%0A` +
+                            `Mohon konfirmasi kesiapan teknisi untuk meluncur. Terima kasih!`;
+
+            const technicianPhone = '6282238675779';
+            const whatsappURL = `https://wa.me/${technicianPhone}?text=${message}`;
+
+            window.open(whatsappURL, '_blank');
+        });
+
+        // 9. DATABASE, ADMIN & INVOICE GENERATOR LOGIC
+        // Data garansi dan invoice disimpan di backend server, bukan localStorage.
+        let currentInvoiceData = null;
+
+        async function apiRequest(url, options = {}) {
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+                ...options
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.error || `Permintaan gagal (${response.status})`);
+            return body;
+        }
+
+
+
+        function switchAdminTab(tab) {
+            const formPanel = document.getElementById('adminFormPanel');
+            const previewPanel = document.getElementById('adminPreviewPanel');
+            const formBtn = document.getElementById('tabFormBtn');
+            const previewBtn = document.getElementById('tabPreviewBtn');
+
+            if (tab === 'form') {
+                formPanel.classList.remove('hidden');
+                previewPanel.classList.add('hidden');
+                formBtn.className = "flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition bg-cyan-500 text-slate-950";
+                previewBtn.className = "flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition text-slate-400 hover:text-white";
+            } else {
+                formPanel.classList.add('hidden');
+                previewPanel.classList.remove('hidden');
+                previewBtn.className = "flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition bg-cyan-500 text-slate-950";
+                formBtn.className = "flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition text-slate-400 hover:text-white";
+            }
+        }
+
+        function addItem() {
+            const container = document.getElementById('itemsContainer');
+            const row = document.createElement('div');
+            row.className = "item-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-center";
+            row.innerHTML = `
+                <input type="text" placeholder="Nama Barang/Jasa" class="item-desc sm:col-span-6 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200">
+                <input type="number" placeholder="Qty" class="item-qty sm:col-span-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200" value="1">
+                <input type="number" placeholder="Harga (Rp)" class="item-price sm:col-span-3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200" value="0">
+                <button type="button" class="sm:col-span-1 bg-rose-600/20 text-rose-400 border border-rose-500/30 rounded-xl py-2 text-xs font-bold hover:bg-rose-600 hover:text-white transition" onclick="removeItem(this)">X</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeItem(btn) {
+            const rows = document.querySelectorAll('.item-row');
+            if (rows.length <= 1) {
+                alert('Minimal satu baris rincian harus tersedia.');
+                return;
+            }
+            btn.parentElement.remove();
+        }
+
+        function formatRupiah(num) {
+            return "Rp " + Number(num).toLocaleString('id-ID');
+        }
+
+        function generateInvoiceAndPreview() {
+            currentInvoiceData = null;
+            const name = document.getElementById('custName').value.trim() || 'Tanpa Nama';
+            const phone = document.getElementById('custPhone').value.trim();
+            const device = document.getElementById('devModel').value.trim() || '-';
+            const warrantyValue = Number(document.getElementById('warrantySelect').value);
+            if (![0, 1, 3, 6].includes(warrantyValue)) {
+                alert('Pilihan garansi tidak valid.');
+                return;
+            }
+            const warranty = warrantyValue === 0 ? 'Tidak Ada' : warrantyValue + ' Bulan';
+            const garansiBulan = warrantyValue;
+            const payMethod = document.getElementById('payMethod').value;
+            const notes = document.getElementById('notesText').value.trim();
+            const dpInput = Number(document.getElementById('dpAmount').value);
+            if (!Number.isFinite(dpInput) || dpInput < 0) {
+                alert('Nominal DP harus berupa angka nol atau lebih.');
+                return;
+            }
+            const dp = dpInput;
+
+            const rows = Array.from(document.querySelectorAll('.item-row'));
+            if (!rows.length) {
+                alert('Tambahkan minimal satu rincian perbaikan atau jasa.');
+                return;
+            }
+            const items = [];
+            let subtotal = 0;
+            for (const row of rows) {
+                const desc = row.querySelector('.item-desc').value.trim();
+                const qtyRaw = row.querySelector('.item-qty').value;
+                const priceRaw = row.querySelector('.item-price').value;
+                const qty = Number(qtyRaw);
+                const price = Number(priceRaw);
+                if (!desc) {
+                    alert('Nama barang/jasa pada setiap baris wajib diisi.');
+                    return;
+                }
+                if (!qtyRaw || !Number.isFinite(qty) || qty <= 0) {
+                    alert('Qty harus berupa angka lebih dari 0.');
+                    return;
+                }
+                if (priceRaw === '' || !Number.isFinite(price) || price < 0) {
+                    alert('Harga harus berupa angka nol atau lebih.');
+                    return;
+                }
+                const total = qty * price;
+                if (!Number.isFinite(total) || total > Number.MAX_SAFE_INTEGER) {
+                    alert('Total salah satu rincian terlalu besar atau tidak valid.');
+                    return;
+                }
+                subtotal += total;
+                if (!Number.isFinite(subtotal) || subtotal > Number.MAX_SAFE_INTEGER) {
+                    alert('Subtotal terlalu besar atau tidak valid.');
+                    return;
+                }
+                items.push({ desc, qty, price, total });
+            }
+
+            if (dp > subtotal) {
+                alert('DP tidak boleh melebihi subtotal. Periksa kembali nominal DP.');
+                return;
+            }
+
+            const remaining = subtotal - dp;
+            const statusText = remaining === 0 ? 'LUNAS' : 'BELUM LUNAS';
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            const dateISO = safeLocalDateISO(now);
+            // Keunikan nomor invoice juga dijamin oleh UNIQUE constraint di database server.
+            const invNo = createInvoiceNumber();
+
+            currentInvoiceData = { invNo, dateStr, dateISO, name, phone, device, warranty, garansiBulan, payMethod, items, subtotal, dp, remaining, statusText, notes };
+
+            document.getElementById('invDate').innerText = 'Tanggal: ' + dateStr;
+            document.getElementById('invNo').innerText = invNo;
+            document.getElementById('pName').innerText = name;
+            document.getElementById('pDevice').innerText = device;
+            document.getElementById('pWarranty').innerText = warranty;
+            document.getElementById('pPayMethod').innerText = payMethod;
+            document.getElementById('pNotes').innerText = notes;
+
+            const tbody = document.getElementById('pItemsBody');
+            tbody.replaceChildren();
+            items.forEach(item => {
+                const tr = document.createElement('tr');
+                const descCell = document.createElement('td');
+                descCell.className = 'py-1';
+                descCell.textContent = item.desc;
+                const qtyCell = document.createElement('td');
+                qtyCell.className = 'text-center py-1';
+                qtyCell.textContent = String(item.qty);
+                const priceCell = document.createElement('td');
+                priceCell.className = 'text-right py-1';
+                priceCell.textContent = formatRupiah(item.price);
+                const totalCell = document.createElement('td');
+                totalCell.className = 'text-right py-1';
+                totalCell.textContent = formatRupiah(item.total);
+                tr.append(descCell, qtyCell, priceCell, totalCell);
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('pSubtotal').innerText = formatRupiah(subtotal);
+            document.getElementById('pDp').innerText = formatRupiah(dp);
+            document.getElementById('pStatus').innerText = statusText;
+            document.getElementById('pRemaining').innerText = formatRupiah(remaining);
+            switchAdminTab('preview');
+        }
+
+        function getWhatsAppFormattedText() {
+            if(!currentInvoiceData) return '';
+            let d = currentInvoiceData;
+            let text = `INVOICE SERVISAN - POIZYSTORE\n`;
+            text += `No: ${d.invNo}\n`;
+            text += `Tanggal: ${d.dateStr}\n\n`;
+            text += `Pelanggan: ${d.name}\n`;
+            text += `Perangkat: ${d.device}\n`;
+            text += `Garansi: ${d.warranty}\n`;
+            text += `Metode Pembayaran: ${d.payMethod}\n\n`;
+            text += `Rincian Perbaikan:\n`;
+            d.items.forEach(i => {
+                text += `- ${i.desc} (${i.qty}x @ ${formatRupiah(i.price)}) = ${formatRupiah(i.total)}\n`;
+            });
+            text += `\nSubtotal: ${formatRupiah(d.subtotal)}\n`;
+            text += `Down Payment (DP): ${formatRupiah(d.dp)}\n`;
+            text += `Status: ${d.statusText}\n`;
+            text += `Sisa Pelunasan: ${formatRupiah(d.remaining > 0 ? d.remaining : 0)}\n\n`;
+            text += `Catatan:\n${d.notes}\n\n`;
+            text += `--- PROMO POIZYSTORE ---\n`;
+            text += `Terima kasih telah mempercayakan perbaikan perangkat Anda di poizystore. Dapatkan potongan harga khusus untuk servisan berikutnya!\n`;
+            return text;
+        }
+
+        async function copyWhatsAppText() {
+            if (!currentInvoiceData) {
+                generateInvoiceAndPreview();
+                if (!currentInvoiceData) return;
+            }
+            const text = getWhatsAppFormattedText();
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const helper = document.createElement('textarea');
+                    helper.value = text;
+                    helper.setAttribute('readonly', '');
+                    helper.style.position = 'fixed';
+                    helper.style.opacity = '0';
+                    document.body.appendChild(helper);
+                    helper.select();
+                    const copied = document.execCommand('copy');
+                    helper.remove();
+                    if (!copied) throw new Error('Clipboard fallback gagal');
+                }
+                alert('Teks invoice berhasil disalin ke clipboard!');
+            } catch (error) {
+                console.warn('Gagal menyalin invoice:', error);
+                alert('Browser menolak akses clipboard. Salin teks melalui pratinjau secara manual.');
+            }
+        }
+
+        function sendWhatsApp() {
+            if (!currentInvoiceData) {
+                generateInvoiceAndPreview();
+                if (!currentInvoiceData) return;
+            }
+            let phone = currentInvoiceData.phone || '';
+            if(!phone) phone = prompt('Masukkan nomor WhatsApp pelanggan (contoh: 62812...):') || '';
+            phone = phone.replace(/\D/g, '');
+            if (phone.length < 8 || phone.length > 15) {
+                alert('Nomor WhatsApp tidak valid. Gunakan 8–15 digit termasuk kode negara.');
+                return;
+            }
+            const text = encodeURIComponent(getWhatsAppFormattedText());
+            window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer');
+        }
+
+        async function saveToDatabaseAndHistory() {
+            if (!currentInvoiceData) return;
+            const d = currentInvoiceData;
+            const payload = {
+                invNo: d.invNo, name: d.name, phone: d.phone, device: d.device,
+                warranty: d.warranty, payMethod: d.payMethod, items: d.items,
+                subtotal: d.subtotal, dp: d.dp, remaining: d.remaining,
+                statusText: d.statusText, notes: d.notes, dateStr: d.dateStr,
+                dateISO: d.dateISO, garansiBulan: d.garansiBulan,
+                kerusakan: d.items.map(i => i.desc).join(', ')
+            };
+            try {
+                await apiRequest('/api/admin/warranties', {
+                    method: 'POST', body: JSON.stringify(payload)
+                });
+                alert('Invoice dan data garansi berhasil disimpan ke database server.');
+            } catch (error) {
+                alert(`Gagal menyimpan ke database server: ${error.message}`);
+            }
+        }
+
+        async function jalankanCekGaransiCustomer() {
+            const resi = document.getElementById('inputResiCustomer').value.trim().toUpperCase();
+            const box = document.getElementById('hasilGaransiBox');
+            box.classList.remove('hidden');
+
+            if (!resi) {
+                box.textContent = 'Masukkan nomor resi atau invoice Anda terlebih dahulu.';
+                return;
+            }
+            box.textContent = 'Memeriksa database server...';
+            try {
+                const result = await apiRequest(`/api/warranties/${encodeURIComponent(resi)}`, { method: 'GET' });
+                const dataServis = result.record;
+                const tglServis = parseValidLocalDate(dataServis.dateISO);
+                if (!tglServis) {
+                    box.textContent = 'Data tanggal servis tidak valid. Silakan hubungi admin.';
+                    return;
+                }
+                const gBulan = Math.max(0, Math.min(120, Math.trunc(Number(dataServis.garansiBulan) || 0)));
+                const tglExpired = addMonthsClamped(tglServis, gBulan);
+                tglExpired.setHours(23, 59, 59, 999);
+                const masihGaransi = gBulan > 0 && new Date() <= tglExpired;
+                const formatTgl = d => d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                box.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                            <span class="text-xs uppercase text-slate-400 font-bold">Status Garansi Servis</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-extrabold ${masihGaransi ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}">
+                                ${masihGaransi ? '🟢 AKTIF BERLAKU' : '🔴 GARANSI HABIS'}
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-slate-300">
+                            <div><span class="text-slate-500">No. Resi:</span> <b class="font-mono text-cyan-400">${escapeHTML(resi)}</b></div>
+                            <div><span class="text-slate-500">Pelanggan:</span> <b>${escapeHTML(dataServis.name)}</b></div>
+                            <div><span class="text-slate-500">Perangkat:</span> <b>${escapeHTML(dataServis.device)}</b></div>
+                            <div><span class="text-slate-500">Total:</span> <b>${formatRupiah(dataServis.subtotal)}</b></div>
+                            <div><span class="text-slate-500">Tanggal:</span> ${formatTgl(tglServis)}</div>
+                            <div><span class="text-slate-500">Berlaku S/D:</span> <b class="text-emerald-400">${formatTgl(tglExpired)}</b></div>
+                        </div>
+                    </div>`;
+            } catch (error) {
+                box.textContent = error.message.includes('404')
+                    ? 'Data servis tidak ditemukan. Periksa kembali nomor invoice.'
+                    : `Tidak dapat menghubungi server: ${error.message}`;
+            }
+        }
+
+        async function prosesLoginAdmin() {
+            const err = document.getElementById('loginErrorMsg');
+            const username = document.getElementById('adminUser').value.trim();
+            const password = document.getElementById('adminPass').value;
+            if (!username || !password) {
+                err.textContent = 'Username dan password wajib diisi.';
+                err.classList.remove('hidden');
+                return;
+            }
+            try {
+                await apiRequest('/api/admin/login', {
+                    method: 'POST', body: JSON.stringify({ username, password })
+                });
+                document.getElementById('adminLoginCard').classList.add('hidden');
+                document.getElementById('adminDashboardCard').classList.remove('hidden');
+                document.getElementById('adminPass').value = '';
+                err.classList.add('hidden');
+            } catch (error) {
+                err.textContent = error.message || 'Login gagal.';
+                err.classList.remove('hidden');
+            }
+        }
+
+        async function prosesLogoutAdmin() {
+            try { await apiRequest('/api/admin/logout', { method: 'POST', body: '{}' }); }
+            catch (error) { console.warn('Logout server:', error); }
+            cekStatusLoginAdmin(false);
+        }
+
+        async function cekStatusLoginAdmin(showLoading = true) {
+            const loginCard = document.getElementById('adminLoginCard');
+            const dashCard = document.getElementById('adminDashboardCard');
+            try {
+                await apiRequest('/api/admin/session', { method: 'GET' });
+                loginCard.classList.add('hidden');
+                dashCard.classList.remove('hidden');
+            } catch {
+                loginCard.classList.remove('hidden');
+                dashCard.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cekStatusLoginAdmin();
+        });
+    </script>
+</body>
+</html>
