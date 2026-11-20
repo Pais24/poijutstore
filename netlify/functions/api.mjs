@@ -61,57 +61,7 @@ export default async (request) => {
   try {
 
     if (method === "GET" && path === "/api/health") {
-      return json({
-        ok: true,
-        assistant: "PAPOI",
-        aiConfigured: Boolean(process.env.OPENAI_API_KEY),
-        model: (process.env.OPENAI_MODEL || "gpt-4.1-mini").trim()
-      });
-    }
-
-    if (method === "POST" && path === "/api/ai-chat") {
-      const body = await readBody(request);
-      const message = cleanString(body.message, 1200);
-      if (!message) return json({ error: "Tulis pertanyaan terlebih dahulu." }, 400);
-      if (!process.env.OPENAI_API_KEY) {
-        return json({ error: "PAPOI belum dikonfigurasi. Pastikan OPENAI_API_KEY tersedia pada Environment Variables Netlify untuk Functions, lalu deploy ulang." }, 503);
-      }
-      const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          model: (process.env.OPENAI_MODEL || "gpt-4.1-mini").trim(),
-          temperature: 0.3,
-          max_tokens: 500,
-          messages: [
-            {
-              role: "system",
-              content: "Identitas Anda adalah PAPOI, asisten AI resmi PoijutStore untuk layanan servis HP di Yogyakarta. Jika ditanya nama, jawab PAPOI. Selalu gunakan Bahasa Indonesia yang jelas, ringkas, ramah, dan profesional. Bantu pengguna memahami layanan servis iPhone dan Android, gejala kerusakan, perawatan perangkat, serta informasi PoijutStore. Jangan mengarang harga, stok, garansi, alamat, atau jadwal yang tidak tersedia dalam konteks. Untuk kerusakan perangkat, berikan kemungkinan penyebab sebagai indikasi awal dan jelaskan bahwa diagnosis pasti memerlukan pemeriksaan teknisi. Jangan meminta kata sandi, OTP, atau data pembayaran."
-            },
-            { role: "user", content: message }
-          ]
-        })
-      });
-      const result = await upstream.json().catch(() => ({}));
-      if (!upstream.ok) {
-        const providerMessage = cleanString(result?.error?.message, 500);
-        const providerCode = cleanString(result?.error?.code || result?.error?.type, 100);
-        console.error("OpenAI API error:", upstream.status, providerCode, providerMessage || "Unknown error");
-        let userMessage = "Layanan AI sedang bermasalah. Silakan coba beberapa saat lagi.";
-        if (upstream.status === 401) userMessage = "Koneksi AI ditolak: API Key tidak valid atau sudah dicabut. Periksa OPENAI_API_KEY di Netlify.";
-        else if (upstream.status === 403) userMessage = "Akses model AI ditolak. Periksa izin proyek dan akses model pada akun penyedia AI.";
-        else if (upstream.status === 404) userMessage = "Model AI tidak ditemukan atau tidak tersedia untuk proyek ini. Periksa OPENAI_MODEL di Netlify.";
-        else if (upstream.status === 429 && /quota|billing|credit|insufficient/i.test(providerMessage + " " + providerCode)) userMessage = "Kuota atau saldo API AI tidak mencukupi. Periksa batas penggunaan dan penagihan akun penyedia AI.";
-        else if (upstream.status === 429) userMessage = "Permintaan AI sedang mencapai batas penggunaan. Tunggu sebentar lalu coba lagi.";
-        else if (upstream.status >= 500) userMessage = "Layanan penyedia AI sedang mengalami gangguan. Coba lagi beberapa saat.";
-        return json({ error: userMessage, providerStatus: upstream.status, providerCode: providerCode || null }, 502);
-      }
-      const reply = result?.choices?.[0]?.message?.content;
-      if (typeof reply !== "string" || !reply.trim()) return json({ error: "AI belum menghasilkan jawaban. Coba ulangi." }, 502);
-      return json({ reply: reply.trim() });
+      return json({ ok: true });
     }
 
     if (method === "POST" && path === "/api/admin/login") {
