@@ -5,6 +5,7 @@ const COOKIE = "poizy_admin_session";
 const SESSION_SECONDS = 8 * 60 * 60;
 const MAX_BODY = 64 * 1024;
 const store = () => getStore({ name: "poizy-warranties", consistency: "strong" });
+const invoiceLinkStore = () => getStore({ name: "poizy-invoice-links", consistency: "strong" });
 
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
@@ -93,6 +94,7 @@ export default async (request) => {
       const body = await readBody(request);
       const key = recordKey(body.invNo);
       if (!key) return json({ error: "Nomor invoice/resi wajib diisi." }, 400);
+      const publicToken = randomBytes(24).toString("base64url");
       const record = {
         invNo: key,
         name: cleanString(body.name, 160),
@@ -117,7 +119,8 @@ export default async (request) => {
         updatedAt: new Date().toISOString()
       };
       await (await store()).setJSON(key, record);
-      return json({ ok: true, record });
+      await (await invoiceLinkStore()).setJSON(publicToken, { invNo: key, createdAt: new Date().toISOString() });
+      return json({ ok: true, record, invoiceUrl: `${url.origin}/?invoice=${publicToken}` });
     }
 
     const match = path.match(/^\/api\/warranties\/([^/]+)$/);
