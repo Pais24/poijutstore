@@ -123,9 +123,8 @@ export default async (request) => {
       return json({ ok: true, record, invoiceUrl: `${url.origin}/?invoice=${publicToken}` });
     }
 
-    const invoiceMatch = path.match(/^\\/api\\/invoices\\/([^/]+)$/);
-    if (method === "GET" && invoiceMatch) {
-      const token = cleanString(decodeURIComponent(invoiceMatch[1]), 80);
+    if (method === "GET" && path.startsWith("/api/invoices/")) {
+      const token = cleanString(decodeURIComponent(path.slice("/api/invoices/".length)), 80);
       if (!/^[A-Za-z0-9_-]{24,80}$/.test(token)) return json({ error: "Tautan invoice tidak valid." }, 400);
       const link = await (await invoiceLinkStore()).get(token, { type: "json" });
       if (!link?.invNo) return json({ error: "Invoice tidak ditemukan atau tautan tidak berlaku." }, 404);
