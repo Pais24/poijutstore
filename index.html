@@ -2208,6 +2208,8 @@
             // Keunikan nomor invoice juga dijamin oleh UNIQUE constraint di database server.
             const invNo = createInvoiceNumber();
 
+            currentInvoiceLink = '';
+            document.getElementById('invoiceLinkTools')?.classList.add('hidden');
             currentInvoiceData = { invNo, dateStr, dateISO, name, phone, device, warranty, garansiBulan, payMethod, items, subtotal, dp, remaining, statusText, notes };
 
             document.getElementById('invDate').innerText = 'Tanggal: ' + dateStr;
