@@ -123,6 +123,18 @@ export default async (request) => {
       return json({ ok: true, record, invoiceUrl: `${url.origin}/?invoice=${publicToken}` });
     }
 
+    const invoiceMatch = path.match(/^\\/api\\/invoices\\/([^/]+)$/);
+    if (method === "GET" && invoiceMatch) {
+      const token = cleanString(decodeURIComponent(invoiceMatch[1]), 80);
+      if (!/^[A-Za-z0-9_-]{24,80}$/.test(token)) return json({ error: "Tautan invoice tidak valid." }, 400);
+      const link = await (await invoiceLinkStore()).get(token, { type: "json" });
+      if (!link?.invNo) return json({ error: "Invoice tidak ditemukan atau tautan tidak berlaku." }, 404);
+      const record = await (await store()).get(link.invNo, { type: "json" });
+      if (!record) return json({ error: "Invoice tidak ditemukan." }, 404);
+      const { phone, publicToken, ...publicRecord } = record;
+      return json({ record: publicRecord });
+    }
+
     const match = path.match(/^\/api\/warranties\/([^/]+)$/);
     if (method === "GET" && match) {
       const key = recordKey(decodeURIComponent(match[1]));
